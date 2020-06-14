@@ -4,3 +4,9 @@ build
 dist
 venv
 config.ini
+backup.gz
+BD_Carina.backup
+BD_Carina.backup.gz
+Faqture.spec
+token.pickle
+backup/credenciales/credentials_faqture.json
