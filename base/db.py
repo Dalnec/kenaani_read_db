@@ -47,12 +47,25 @@ def read_empresa_pgsql():
             cursor.close()
             cnx.close()
 
-def update_venta_anulados_pgsql(ext_id, id):
+def update_anulados_pgsql(ext_id, id):
     try:
         cnx = __conectarse()
         cursor = cnx.cursor()
         cursor.execute(
             "UPDATE comercial.ventas SET observaciones_declaracion = %s, estado_declaracion_anulado='PROCESADO' WHERE id_venta = %s", (ext_id, id))
+        cnx.commit()
+    finally:
+        # closing database connection
+        if (cnx):
+            cursor.close()
+            cnx.close()
+
+def update_notaCredito_pgsql(ext_id, id):
+    try:
+        cnx = __conectarse()
+        cursor = cnx.cursor()
+        cursor.execute(
+            "UPDATE comercial.notas_credito_debito SET observaciones_declaracion = %s, estado_declaracion='PROCESADO' WHERE id_notas_credito_debito = %s", (ext_id, id))
         cnx.commit()
     finally:
         # closing database connection

@@ -1,17 +1,17 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 block_cipher = None
-added_files = [
-         ( 'kulami/models.py', 'kulami' ),
+added_files = [( 'kulami/*.*', 'kulami' ),
          ( 'base/db.py', 'base' ),
-         ( 'pseapi/api.py', 'pseapi' )
+         ( 'pseapi/api.py', 'pseapi' ),
+         ( 'backup/*.*', 'backup' )         
          ]
 
 a = Analysis(['main.py'],
-             pathex=['C:\\Users\\Dany\\Desktop\\Pechan_read_db ver 1.0 con conf'],
+             pathex=['C:\\Users\\Dany\\Desktop\\kenaani_read_db'],
              binaries=[],
              datas=added_files,
-             hiddenimports=[],
+             hiddenimports=['google-api-python-client'],
              hookspath=[],
              runtime_hooks=[],
              excludes=[],

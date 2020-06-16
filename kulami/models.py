@@ -72,7 +72,7 @@ def leer_db_access():
             INNER JOIN comercial.detalle_producto ON producto.codigo_producto = detalle_producto.codigo_producto
             INNER JOIN comercial.unidadmedida ON  unidadmedida.codigo_unidad_m = detalle_venta.cod_unidad_medida 
             INNER JOIN comercial.metodo_pago ON  metodo_pago.id_metodo_pago = ventas.id_metodo_pago
-            WHERE ventas.estado_declaracion='PENDIENTE' and ventas.num_serie not in ('PRE') and tipodocumento.id_tipodocumento in (25,26)
+            WHERE ventas.estado_declaracion='PENDIENTE' and ventas.num_serie not in ('PRE') and tipodocumento.id_tipodocumento in (25,26) and ventas.fecha_hora > '2020-03-15'
             ORDER BY ventas.fecha_hora
         """
 
