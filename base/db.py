@@ -14,7 +14,7 @@ def __conectarse():
     try:
         # nos conectamos a la bd del cafae
         cnx = psycopg2.connect(database=db_name, user=db_user,
-                               password=db_pass, host=db_host, port=db_port)
+                            password=db_pass, host=db_host, port=db_port)
         return cnx
     except (Exception, psycopg2.Error) as error:
         print("Error fetching data from PostgreSQL table", error)
@@ -38,7 +38,7 @@ def read_empresa_pgsql():
     try:
         cnx = __conectarse()
         cursor = cnx.cursor()
-        cursor.execute("SELECT * FROM comercial.empresa WHERE id_empresa=%s", (1,))
+        cursor.execute("SELECT efactur_empresa, efactur_url FROM comercial.empresa WHERE id_empresa=%s", (1,))
         convenio = cursor.fetchone()
         return convenio
     finally:
@@ -73,3 +73,41 @@ def update_notaCredito_pgsql(ext_id, id):
             cursor.close()
             cnx.close()
 
+def insert_resumen_pgsql(tipo, ticket, ext_id, fecha): 
+    try:
+        cnx = __conectarse()
+        cursor = cnx.cursor()
+        cursor.execute(
+            "INSERT INTO comercial.resumen (tipo, ticket, ext_id_resumen, fecha_hora) VALUES (%s, %s, %s, %s)", (tipo, ticket, ext_id, fecha))
+        cnx.commit()
+    finally:
+        # closing database connection
+        if (cnx):
+            cursor.close()
+            cnx.close()
+
+def update_consulta_pgsql(id, filename, ext_id):
+    try:
+        cnx = __conectarse()
+        cursor = cnx.cursor()
+        cursor.execute(
+            "UPDATE comercial.resumen SET filename = %s, ext_id_consulta = %s WHERE id_resumen = %s", (filename, ext_id, id))
+        cnx.commit()
+    finally:
+        # closing database connection
+        if (cnx):
+            cursor.close()
+            cnx.close()
+
+def read_resumen_pgsql():
+    try:
+        cnx = __conectarse()
+        cursor = cnx.cursor()
+        cursor.execute("SELECT fecha_hora FROM comercial.resumen ORDER BY fecha_hora DESC LIMIT 1")
+        convenio = cursor.fetchone()
+        return convenio
+    finally:
+        # closing database connection
+        if (cnx):
+            cursor.close()
+            cnx.close()

@@ -15,7 +15,7 @@ pip install -r requirements.txt
 
 # Actualizar pip
 ```
-
+python -m pip install --upgrade pip
 ```
 
 ```

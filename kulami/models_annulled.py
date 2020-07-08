@@ -11,14 +11,12 @@ class Venta:
     motivo_anulacion = None
 
     def __str__(self):
-        return "{}, {}".format(self.fecha_venta, self.codigo_tipo_proceso) #ver para que sirve
+        return "{}, {}".format(self.fecha_venta, self.codigo_tipo_proceso)
 
 def leer_db_fanulados():
     cnx = __conectarse()
     cursor = cnx.cursor()
     lista_ventas_anulados = []
-
-#tipodocumento.codigo_sunat,
 
     sql_header = """
             SELECT                 
@@ -61,8 +59,6 @@ def leer_db_banulados():
     cursor = cnx.cursor()
     lista_ventas_anulados = []
 
-#tipodocumento.codigo_sunat,
-
     sql_header = """
             SELECT                 
                 ventas.id_venta,
@@ -104,17 +100,20 @@ def _generate_lista_anulados(ventas_anulados):
     header_dics = []
     for venta in ventas_anulados:
         header_dic = {}
-        
+        header_dic['id_venta'] = int(venta.id_venta)
         # Creamos el cuerpo del pse
         header_dic['fecha_de_emision_de_documentos'] = venta.fecha_venta.strftime('%Y-%m-%d')
-        header_dic['codigo_tipo_proceso'] = int(venta.codigo_tipo_proceso)
+        if int(venta.codigo_tipo_proceso) == 3:
+            header_dic['codigo_tipo_proceso'] = "3"
 
-        # documentos
+        # documentos verificar [] no los estoy incluyendo
+        docs = []
         documents = {}
         documents['external_id'] = venta.external_id
         documents['motivo_anulacion'] = venta.motivo_anulacion
+        docs.append(documents)
 
-        header_dic['documentos'] = documents
+        header_dic['documentos'] = docs
 
         header_dics.append(header_dic)
     return header_dics
