@@ -11,13 +11,15 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 
 db_name = config['BASE']['DB_NAME']
+bu_name = config['BACKUP']['BU_NAME']
 db_drive = config['BACKUP']['BU_DRIVE']
 
-file_name = db_name +'.backup'
+file_name = bu_name +'.backup'
 gz_name = file_name +'.gz'
 
 def backup():
-    cmd='pg_dump -d '+ db_name +' -p 5432 -U postgres -F t -f '+ file_name
+    cmd ='pg_dump -d '+ db_name +' -p 5432 -U postgres -F t -f '+ file_name
+    #cmd = 'pg_dump -d '+ db_name +' -F t -f '+ file_name
 
     with gzip.open(file_name, 'wb') as f:
         popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)    

@@ -1,7 +1,11 @@
 import pyodbc
 import psycopg2
 from base.db import __conectarse, read_empresa_pgsql
+import configparser
 
+config = configparser.ConfigParser()
+config.read('config.ini')
+ubigeo = config['MODELS']['UBIGEO']
 
 class Venta:
     tipo_venta = None
@@ -24,16 +28,15 @@ class Venta:
     detalle_ventas = []
 
     def __str__(self):
-        return "{} - {} {}".format(self.tipo_venta, self.serie_documento, self.detalle_ventas) #ver para que sirve
+        return "{} - {} {}".format(self.tipo_venta, self.serie_documento, self.detalle_ventas)
 
 
 class DetalleVenta:
     def __init__(self, codigo_producto, nombre_producto, cantidad, precio_producto, unidad_medida, 
         sub_total, total_impuestos_bolsa_plastica, desc_individual, desc_porcentaje, monto_total):
-        #self.posicion = posicion
         self.codigo_producto = codigo_producto
         self.nombre_producto = nombre_producto
-        self.cantidad = int(cantidad)
+        self.cantidad = float(cantidad)
         self.precio_producto = float(precio_producto)
         self.unidad_medida = unidad_medida
         self.total_impuestos_bolsa_plastica = total_impuestos_bolsa_plastica
@@ -80,17 +83,17 @@ def leer_db_access():
             INNER JOIN comercial.detalle_producto ON producto.codigo_producto = detalle_producto.codigo_producto
             INNER JOIN comercial.unidadmedida ON  unidadmedida.codigo_unidad_m = detalle_venta.cod_unidad_medida 
             INNER JOIN comercial.metodo_pago ON  metodo_pago.id_metodo_pago = ventas.id_metodo_pago
-            WHERE ventas.estado_declaracion='PENDIENTE' and ventas.num_serie not in ('PRE') and tipodocumento.id_tipodocumento in (25,26) 
-            and ventas.fecha_hora > '2020-05-01'
+            WHERE ventas.estado_declaracion='PENDIENTE' AND ventas.num_serie not in ('PRE') AND tipodocumento.id_tipodocumento in (25,26)
+            AND ventas.fecha_hora >= '2020-01-01'
             AND ventas.codigo_cliente != 'ANULADO'
             ORDER BY ventas.fecha_hora 
         """
-
+    #(1,2) 
     sql_detail = """
             SELECT distinct 
                 producto.codigo_producto codigo,
-                producto.descripcion descripcion,
-                detalle_venta.cantidad cantidad,
+                detalle_venta.descripcion,
+                detalle_venta.cantidad,
                 detalle_venta.monto precio_unitario,
                 (detalle_venta.monto * detalle_venta.cantidad - detalle_venta.descuento_total) sub_total,
                 case when producto.impuesto_bolsas = 'TRUE' then (select parametros.valor::DECIMAL from comercial.parametros where id_parametros = 72) * detalle_venta.cantidad else 0 end impuesto_bolsas,
@@ -153,7 +156,7 @@ def _generate_lista(ventas):
         codigo_tipo_moneda = 'PEN'
         header_dic = {}
 
-        # opcionales
+        # Opcionales
         header_dic['id_venta'] = int(venta.id_venta)
         header_dic['informacion_adicional'] = "Forma de pago:"+ venta.forma_pago +"|Caja: "+ venta.punto_venta
         # Creamos el cuerpo del pse
@@ -173,7 +176,7 @@ def _generate_lista(ventas):
         datos_del_cliente['numero_documento'] = venta.documento_cliente
         datos_del_cliente['apellidos_y_nombres_o_razon_social'] = venta.nombre_cliente
         datos_del_cliente['codigo_pais'] = 'PE'
-        datos_del_cliente['ubigeo'] = ''
+        datos_del_cliente['ubigeo'] = ubigeo
         datos_del_cliente['direccion'] = venta.direccion_cliente
         datos_del_cliente['correo_electronico'] = ''
         datos_del_cliente['telefono'] = ''
@@ -190,7 +193,6 @@ def _generate_lista(ventas):
             descuentosT['monto'] = float(venta.descuentos)
             descuentosT['base'] = float(venta.total_venta)
             descT.append(descuentosT)
-
             header_dic['descuentos'] = descT
         
         # totales
@@ -234,8 +236,8 @@ def _generate_lista(ventas):
                 descuentos['monto'] = float(deta.desc_individual)
                 descuentos['base'] = float(deta.sub_total)
                 desc.append(descuentos)
-
                 item['descuentos'] = desc
+                
             item['total_base_igv'] = float(deta.sub_total) - float(deta.desc_individual)
             item['porcentaje_igv'] = 18
             item['total_igv'] = 0

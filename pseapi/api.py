@@ -29,7 +29,7 @@ def _send_cpe(url, token, data):
     #cont = 0
     for venta in data:
         #if cont == 0:
-            print(venta)
+            #print(venta)
             response = requests.post(
                 url, json=venta, headers=header, verify=False)
             if response.status_code == 200:

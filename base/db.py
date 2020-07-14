@@ -103,7 +103,7 @@ def read_resumen_pgsql():
     try:
         cnx = __conectarse()
         cursor = cnx.cursor()
-        cursor.execute("SELECT fecha_hora FROM comercial.resumen ORDER BY fecha_hora DESC LIMIT 1")
+        cursor.execute("SELECT fecha_hora FROM comercial.resumen WHERE tipo = 'B' ORDER BY fecha_hora DESC LIMIT 1")
         convenio = cursor.fetchone()
         return convenio
     finally:

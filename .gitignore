@@ -5,9 +5,8 @@ dist
 venv
 config.ini
 backup.gz
-BD_Carina.backup
-BD_Carina.backup.gz
-Faqture.spec
+Carina.backup
+Carina.backup.gz
 token.pickle
 backup/credenciales/
 apiazul.ico

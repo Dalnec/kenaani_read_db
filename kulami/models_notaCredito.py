@@ -25,18 +25,15 @@ class Venta:
     detalle_ventas = []
 
     def __str__(self):
-        return "{} - {} {}".format(self.tipo_venta, self.serie_documento, self.detalle_ventas) #ver para que sirve
-
+        return "{} - {} {}".format(self.tipo_venta, self.serie_documento, self.detalle_ventas)
 
 class DetalleVenta:
     def __init__(self, codigo_producto, nombre_producto, cantidad, precio_producto, unidad_medida):
-        #self.posicion = posicion
         self.codigo_producto = codigo_producto
         self.nombre_producto = nombre_producto
-        self.cantidad = int(cantidad)
+        self.cantidad = float(cantidad)
         self.precio_producto = float(precio_producto)
         self.unidad_medida = unidad_medida
-        #self.total_impuestos_bolsa_plastica = total_impuestos_bolsa_plastica
 
     def __str__(self):
         return self.nombre_producto
@@ -73,15 +70,10 @@ def leer_db_notaCredito():
         venta.fecha_venta = row[3]
         venta.codigo_tipo_nota = row[4]
         venta.motivo_o_sustento_de_nota = row[5]
-        venta.external_id = row[6]
-
-        #venta.codigo_tipo_documento_identidad = '06'        
+        venta.external_id = row[6]    
         venta.documento_cliente = row[7]
         venta.nombre_cliente = row[8]
         venta.direccion_cliente = row[9] if row[9] != None else ''
-        #venta.codigo_cliente = row[9]        
-        #venta.total_bolsa_plastica = 0
-        #venta.vendedor = row[10]
         
         venta.forma_pago = ''
         venta.punto_venta = row[10]
@@ -106,13 +98,11 @@ def _generate_lista(ventas):
     
     header_dics = []
     for venta in ventas:
-        #codigo_tipo_operacion = '0101'
-        codigo_tipo_documento = '07'
-        #codigo_tipo_nota = '01'        
+        codigo_tipo_documento = '07' 
         codigo_tipo_moneda = 'PEN'
         header_dic = {}
 
-        # opcionales
+        # Opcionales
         header_dic['id_venta'] = int(venta.id_venta)
         header_dic['informacion_adicional'] = "Forma de pago:"+ venta.forma_pago +"|Caja: "+ venta.punto_venta
 
@@ -121,28 +111,24 @@ def _generate_lista(ventas):
         header_dic['numero_documento'] = int(venta.numero_documento)
         header_dic['fecha_de_emision'] = venta.fecha_venta.strftime('%Y-%m-%d')
         header_dic['hora_de_emision'] = venta.fecha_venta.strftime('%H:%M:%S')
-        #header_dic['codigo_tipo_operacion'] = codigo_tipo_operacion
         header_dic['codigo_tipo_documento'] = codigo_tipo_documento
         header_dic['codigo_tipo_nota'] = venta.codigo_tipo_nota
         header_dic['motivo_o_sustento_de_nota'] = venta.motivo_o_sustento_de_nota
         header_dic['codigo_tipo_moneda'] = codigo_tipo_moneda
-        #header_dic['fecha_de_vencimiento'] = venta.fecha_venta.strftime('%Y-%m-%d')
         header_dic['numero_orden_de_compra'] = ''
         
-        #external_id
+        # external_id
         documento_afectado = {}
         documento_afectado['external_id'] = venta.external_id
         header_dic['documento_afectado'] = documento_afectado
 
         # totales
         datos_totales = {}
-        #datos_totales['total_descuentos'] = 0
         datos_totales['total_exportacion'] = 0
         datos_totales['total_operaciones_gravadas'] = 0
         datos_totales['total_operaciones_inafectas'] = 0
-        datos_totales['total_operaciones_exoneradas'] = venta.total_venta #- venta.total_bolsa_plastica
+        datos_totales['total_operaciones_exoneradas'] = venta.total_venta
         datos_totales['total_operaciones_gratuitas'] = 0
-        #datos_totales['total_impuestos_bolsa_plastica'] = venta.total_bolsa_plastica
         datos_totales['total_igv'] = 0
         datos_totales['total_impuestos'] = 0
         datos_totales['total_valor'] = venta.total_venta
@@ -152,7 +138,7 @@ def _generate_lista(ventas):
 
         # datos del cliente
         datos_del_cliente = {}
-        datos_del_cliente['codigo_tipo_documento_identidad'] = '6'#venta.codigo_tipo_documento_identidad
+        datos_del_cliente['codigo_tipo_documento_identidad'] = '6'
         datos_del_cliente['numero_documento'] = venta.documento_cliente
         datos_del_cliente['apellidos_y_nombres_o_razon_social'] = venta.nombre_cliente
         datos_del_cliente['codigo_pais'] = 'PE'
@@ -175,10 +161,9 @@ def _generate_lista(ventas):
             item['codigo_tipo_precio'] = '01'
             item['precio_unitario'] = deta.precio_producto
             item['codigo_tipo_afectacion_igv'] = '20'
-            item['total_base_igv'] = 0
+            item['total_base_igv'] = (deta.cantidad * deta.precio_producto)
             item['porcentaje_igv'] = 18
             item['total_igv'] = 0
-            #item['total_impuestos_bolsa_plastica'] = deta.total_impuestos_bolsa_plastica
             item['total_impuestos'] = 0
             item['total_valor_item'] = (deta.cantidad * deta.precio_producto)
             item['total_item'] = (deta.cantidad * deta.precio_producto)
