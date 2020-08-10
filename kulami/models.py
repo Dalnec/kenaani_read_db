@@ -6,6 +6,7 @@ import configparser
 config = configparser.ConfigParser()
 config.read('config.ini')
 ubigeo = config['MODELS']['UBIGEO']
+date_header = config['MODELS']['DATE_HEADER']
 
 class Venta:
     tipo_venta = None
@@ -84,11 +85,11 @@ def leer_db_access():
             INNER JOIN comercial.unidadmedida ON  unidadmedida.codigo_unidad_m = detalle_venta.cod_unidad_medida 
             INNER JOIN comercial.metodo_pago ON  metodo_pago.id_metodo_pago = ventas.id_metodo_pago
             WHERE ventas.estado_declaracion='PENDIENTE' AND ventas.num_serie not in ('PRE') AND tipodocumento.id_tipodocumento in (25,26)
-            AND ventas.fecha_hora >= '2020-01-01'
+            AND ventas.fecha_hora >= '{}'
             AND ventas.codigo_cliente != 'ANULADO'
             ORDER BY ventas.fecha_hora 
         """
-    #(1,2) 
+    #(1,2) (25,26)
     sql_detail = """
             SELECT distinct 
                 producto.codigo_producto codigo,
@@ -111,7 +112,7 @@ def leer_db_access():
                 producto.codigo_producto = detalle_venta.codigo_producto AND
                 producto.codigo_producto = detalle_producto.codigo_producto AND ventas.id_venta = {}
         """
-    cursor.execute(sql_header)
+    cursor.execute(sql_header.format(date_header))
 
     for row in cursor.fetchall():
         venta = Venta()
@@ -220,7 +221,7 @@ def _generate_lista(ventas):
             item['codigo_producto_sunat'] = ''
             item['codigo_producto_gsl'] = ''
             item['unidad_de_medida'] = 'NIU'
-            item['cantidad'] = deta.cantidad
+            item['cantidad'] = round((deta.cantidad), 2)
             item["valor_unitario"] = deta.precio_producto
             item['codigo_tipo_precio'] = '01'
             item['precio_unitario'] = deta.precio_producto

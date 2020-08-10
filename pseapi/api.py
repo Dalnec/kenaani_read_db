@@ -1,6 +1,6 @@
 import requests
 
-from base.db import (
+from base.db import ( _get_time,
     read_empresa_pgsql,
     update_venta_pgsql,
     update_anulados_pgsql,
@@ -38,6 +38,8 @@ def _send_cpe(url, token, data):
                 update_venta_pgsql(external_id, int(venta['id_venta']))
                 print(response.content)
             else:
+                print(_get_time(1) + ':')
+                print(response.content)
                 print(response.status_code)
         #cont += 1
 
@@ -70,6 +72,8 @@ def _send_cpe_anulados(url, token, data):
                 update_anulados_pgsql(external_id, int(venta['id_venta']))
                 print(response.content)
             else:
+                print(_get_time(1) + ':')
+                print(response.content)
                 print(response.status_code)
         #cont += 1
 
@@ -95,6 +99,8 @@ def _send_cpe_notaCredito(url, token, data):
                 update_notaCredito_pgsql(external_id, int(venta['id_venta']))
                 print(response.content)
             else:
+                print(_get_time(1) + ':')
+                print(response.content)
                 print(response.status_code)
         #cont += 1
 

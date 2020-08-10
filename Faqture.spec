@@ -8,7 +8,7 @@ added_files = [( 'kulami/*.*', 'kulami' ),
          ]
 
 a = Analysis(['main.py'],
-             pathex=['C:\\Users\\Dany\\Desktop\\kenaani_read_db'],
+             pathex=['D:\\TSI_Python\\kenaani_read_db'],
              binaries=[],
              datas=added_files,
              hiddenimports=['google-api-python-client'],
@@ -34,4 +34,4 @@ exe = EXE(pyz,
           upx=True,
           upx_exclude=[],
           runtime_tmpdir=None,
-          console=False, icon='apiazul.ico')
+          console=True , icon='apiazul.ico')

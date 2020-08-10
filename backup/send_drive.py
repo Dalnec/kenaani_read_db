@@ -1,12 +1,13 @@
 from __future__ import print_function
 import pickle
 import os.path
-import pkg_resources.py2_warn
+#import pkg_resources.py2_warn
 from googleapiclient import errors
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.http import MediaFileUpload
+from base.db import _get_time
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/drive'] #.metadata.readonly']
@@ -52,7 +53,7 @@ def uploadFile(filename,filepath,mimetype):
     file = services.files().create(body = file_metadata,
                                     media_body = media,
                                     fields='id').execute()
-    return print('Uploaded: %s' % file.get('id'))
+    return print('%s Uploaded: %s' % (_get_time(1), file.get('id')))
 
 def searchFile(size, query, filename):
     services = getCredentials()
@@ -82,7 +83,7 @@ def updateFile(file_id, new_filename, new_mime_type):
         updated_file = services.files().update(fileId=file_id,                                           
                                             body=file,
                                             media_body=media_body).execute()
-        return print('Updated: %s' % updated_file['id'])
+        return print('%s Updated: %s' % (_get_time(1), updated_file['id']))
     except errors.HttpError as error:
-        print ('An error occurred: %s' % error) 
+        print ('%s An error occurred: %s' % (_get_time(1), error)) 
         return None

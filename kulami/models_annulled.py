@@ -2,7 +2,6 @@ import pyodbc
 import psycopg2
 from base.db import __conectarse
 
-
 class Venta:
     id_venta = None
     fecha_venta = None
@@ -35,7 +34,8 @@ def leer_db_fanulados():
                 ventas.codigo_cliente = 'ANULADO' AND
                 ventas.estado_declaracion = 'ANULADO' AND
                 tipodocumento.codigo_sunat = '01' AND
-                ventas.fecha_hora > '2020-01-01'
+                ventas.fecha_hora > '2020-01-01' AND
+                ventas.observaciones_declaracion != ''                
             ORDER BY ventas.fecha_hora
         """   
     cursor.execute(sql_header)
@@ -77,7 +77,8 @@ def leer_db_banulados():
                 ventas.codigo_cliente = 'ANULADO' AND
                 ventas.estado_declaracion = 'ANULADO' AND
                 tipodocumento.codigo_sunat = '03' AND
-                ventas.fecha_hora > '2020-01-01'
+                ventas.fecha_hora > '2020-01-01' AND
+                ventas.observaciones_declaracion != ''
             ORDER BY ventas.fecha_hora
         """   
     cursor.execute(sql_header)
@@ -107,7 +108,6 @@ def _generate_lista_anulados(ventas_anulados):
         header_dic['fecha_de_emision_de_documentos'] = venta.fecha_venta.strftime('%Y-%m-%d')
         if int(venta.codigo_tipo_proceso) == 3:
             header_dic['codigo_tipo_proceso'] = "3"
-
         # documentos verificar [] no los estoy incluyendo
         docs = []
         documents = {}

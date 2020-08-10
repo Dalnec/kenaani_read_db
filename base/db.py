@@ -1,5 +1,6 @@
 import psycopg2
 import configparser
+import time
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -9,6 +10,14 @@ db_user = config['BASE']['DB_USER']
 db_pass = config['BASE']['DB_PASS']
 db_host = config['BASE']['DB_HOST']
 db_port = config['BASE']['DB_PORT']
+
+def _get_time(format):
+        timenow = time.localtime()
+        if format == 1:
+            timenow = time.strftime("%Y/%m/%d %H:%M:%S", timenow)
+        else:
+            timenow = time.strftime("%H:%M:%S", timenow)
+        return timenow
 
 def __conectarse():
     try:
