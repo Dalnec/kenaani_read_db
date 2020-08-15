@@ -9,7 +9,6 @@ ubigeo = config['MODELS']['UBIGEO']
 date_header = config['MODELS']['DATE_HEADER']
 
 class Venta:
-    tipo_venta = None
     serie_documento = None
     numero_documento = None
     fecha_venta = None
@@ -26,25 +25,28 @@ class Venta:
     punto_venta = None
     descuentos = None
     total_descuentos = None
+    igv = None
     detalle_ventas = []
 
     def __str__(self):
-        return "{} - {} {}".format(self.tipo_venta, self.serie_documento, self.detalle_ventas)
+        return "{} - {} {}".format(self.codigo_tipo_documento, self.serie_documento, self.detalle_ventas)
 
 
 class DetalleVenta:
-    def __init__(self, codigo_producto, nombre_producto, cantidad, precio_producto, unidad_medida, 
-        sub_total, total_impuestos_bolsa_plastica, desc_individual, desc_porcentaje, monto_total):
+    def __init__(self, codigo_producto, nombre_producto, cantidad, precio_producto, unidad_medida, total_impuestos_bolsa_plastica,
+                desc_individual, desc_porcentaje, sub_total, monto_total, igv, igv_descuento):
         self.codigo_producto = codigo_producto
         self.nombre_producto = nombre_producto
         self.cantidad = float(cantidad)
         self.precio_producto = float(precio_producto)
         self.unidad_medida = unidad_medida
-        self.total_impuestos_bolsa_plastica = total_impuestos_bolsa_plastica
-        self.desc_individual = desc_individual
-        self.desc_porcentaje = desc_porcentaje
-        self.sub_total = sub_total
-        self.monto_total = monto_total
+        self.total_impuestos_bolsa_plastica = float(total_impuestos_bolsa_plastica)
+        self.desc_individual = float(desc_individual)
+        self.desc_porcentaje = float(desc_porcentaje)
+        self.sub_total = float(sub_total)
+        self.monto_total = float(monto_total)
+        self.igv = float(igv)
+        self.igv_descuento = float(igv_descuento)
 
     def __str__(self):
         return self.nombre_producto
@@ -56,92 +58,89 @@ def leer_db_access():
     lista_ventas = []
 
     sql_header = """
-            SELECT  distinct                 
-                ventas.id_venta,
-                ventas.fecha_hora,
-                'generar_comprobante' AS operacion,
-                tipodocumento.codigo_sunat,
-                ventas.num_serie,
-                ventas.num_documento,
-                case when cliente.dni !='' then  cliente.dni when cliente.ruc !='' then cliente.ruc else '00000000' end cliente_numero_de_documento,
-                cliente.nombres_cliente,
-                direcciones.direccion,
-                cliente.codigo_cliente,
-                ventas.cod_empleado,
-                ( case when (select sum(dv.monto_impuesto_bolsas) from comercial.detalle_venta dv where dv.id_venta= ventas.id_venta and dv.monto_impuesto_bolsas != 0) is null then 0 else (select sum(dv.monto_impuesto_bolsas)from comercial.detalle_venta dv where dv.id_venta= ventas.id_venta and dv.monto_impuesto_bolsas != 0 ) end ) + ventas.monto_venta total,
-                case when cliente.ruc !='' then '6' when cliente.dni !='' then '1'  else '0' end cliente_tipo_de_documento,
-                metodo_pago.descripcion as forma_pago,
-                ventas.id_puntodeventa,
-                ventas.descuento
-                
-            FROM comercial.ventas
-            INNER JOIN comercial.tipodocumento ON  tipodocumento.id_tipodocumento = ventas.id_tipodocumento
-            INNER JOIN comercial.cliente ON cliente.codigo_cliente = ventas.codigo_cliente
-            INNER JOIN comercial.direcciones ON direcciones.id_direcciones = ventas.id_direcciones
-            INNER JOIN comercial.moneda ON moneda.id_moneda = ventas.id_moneda
-            INNER JOIN comercial.detalle_venta ON ventas.id_venta = detalle_venta.id_venta
-            INNER JOIN comercial.producto ON producto.codigo_producto = detalle_venta.codigo_producto
-            INNER JOIN comercial.detalle_producto ON producto.codigo_producto = detalle_producto.codigo_producto
-            INNER JOIN comercial.unidadmedida ON  unidadmedida.codigo_unidad_m = detalle_venta.cod_unidad_medida 
-            INNER JOIN comercial.metodo_pago ON  metodo_pago.id_metodo_pago = ventas.id_metodo_pago
-            WHERE ventas.estado_declaracion='PENDIENTE' AND ventas.num_serie not in ('PRE') AND tipodocumento.id_tipodocumento in (25,26)
-            AND ventas.fecha_hora >= '{}'
-            AND ventas.codigo_cliente != 'ANULADO'
-            ORDER BY ventas.fecha_hora 
+        SELECT  distinct                 
+            V.id_venta,--0
+            V.num_serie,--1
+            V.num_documento,--2
+            V.fecha_hora,--3
+            TD.codigo_sunat,--4
+            case when C.ruc !='' then '6' when C.dni !='' then '1'  else '0' end cliente_tipo_de_documento,--5           
+            case when C.dni !='' then C.dni when C.ruc !='' then C.ruc else '00000000' end cliente_numero_de_documento,--6
+            C.nombres_cliente,--7
+            D.direccion,--8
+            (case when (select sum(dv.monto_impuesto_bolsas) from comercial.detalle_venta dv where dv.id_venta= V.id_venta and dv.monto_impuesto_bolsas != 0) is null then 0 else (select sum(dv.monto_impuesto_bolsas)from comercial.detalle_venta dv where dv.id_venta= V.id_venta and dv.monto_impuesto_bolsas != 0 ) end ) + V.monto_venta total,
+            V.cod_empleado,--10               
+            MP.descripcion as forma_pago,--11
+            V.id_puntodeventa,--12
+            V.descuento,--13
+            V.igv --14
+        FROM comercial.ventas V
+            INNER JOIN comercial.tipodocumento TD ON TD.id_tipodocumento = V.id_tipodocumento
+            INNER JOIN comercial.cliente C ON C.codigo_cliente = V.codigo_cliente
+            INNER JOIN comercial.direcciones D ON D.id_direcciones = V.id_direcciones
+            INNER JOIN comercial.moneda M ON M.id_moneda = V.id_moneda
+            INNER JOIN comercial.detalle_venta DV ON V.id_venta = DV.id_venta
+            INNER JOIN comercial.producto P ON P.codigo_producto = DV.codigo_producto
+            INNER JOIN comercial.detalle_producto DP ON P.codigo_producto = DP.codigo_producto
+            INNER JOIN comercial.unidadmedida U ON  U.codigo_unidad_m = DV.cod_unidad_medida 
+            INNER JOIN comercial.metodo_pago MP ON  MP.id_metodo_pago = V.id_metodo_pago
+        WHERE V.estado_declaracion='PENDIENTE' 
+            AND V.num_serie not in ('PRE') 
+            AND TD.id_tipodocumento in (25,26)
+            AND V.fecha_hora >= '{}'
+            AND V.codigo_cliente != 'ANULADO'
+        ORDER BY V.fecha_hora 
         """
     #(1,2) (25,26)
     sql_detail = """
-            SELECT distinct 
-                producto.codigo_producto codigo,
-                detalle_venta.descripcion,
-                detalle_venta.cantidad,
-                detalle_venta.monto precio_unitario,
-                (detalle_venta.monto * detalle_venta.cantidad - detalle_venta.descuento_total) sub_total,
-                case when producto.impuesto_bolsas = 'TRUE' then (select parametros.valor::DECIMAL from comercial.parametros where id_parametros = 72) * detalle_venta.cantidad else 0 end impuesto_bolsas,
-                (detalle_venta.monto * detalle_venta.cantidad - detalle_venta.descuento_total ) total,
-                detalle_venta. descuento_individual,
-                porcentaje_descuento,
-                monto_total
-            FROM
-                comercial.detalle_venta,
-                comercial.producto,
-                comercial.detalle_producto,
-                comercial.ventas
-            WHERE
-                ventas.id_venta = detalle_venta.id_venta AND
-                producto.codigo_producto = detalle_venta.codigo_producto AND
-                producto.codigo_producto = detalle_producto.codigo_producto AND ventas.id_venta = {}
+        SELECT distinct 
+            P.codigo_producto codigo,--0
+            DV.descripcion,		--1
+            DV.cantidad,		--2
+            DV.monto precio_unitario,--3
+            case when P.impuesto_bolsas = 'TRUE' then (select parametros.valor::DECIMAL from comercial.parametros where id_parametros = 72) * DV.cantidad else 0 end impuesto_bolsas,--4
+            DV. descuento_individual,--5
+            porcentaje_descuento,--6
+            (DV.cantidad * DV.monto) sub_total, --7
+            monto_total, --8
+            DV.igv, 	--9
+            DV.igv_descuento --10
+        FROM
+            comercial.detalle_venta DV
+            INNER JOIN comercial.producto P ON P.codigo_producto = DV.codigo_producto
+            INNER JOIN comercial.detalle_producto DP ON P.codigo_producto = DP.codigo_producto
+            INNER JOIN comercial.ventas V ON V.id_venta = DV.id_venta
+        WHERE
+            V.id_venta = {}
         """
     cursor.execute(sql_header.format(date_header))
 
     for row in cursor.fetchall():
-        venta = Venta()
-        venta.tipo_venta = row[3]
+        venta = Venta()        
         venta.id_venta = row[0]
-        venta.serie_documento = row[4]
-        venta.numero_documento = row[5]
-        venta.codigo_tipo_documento = row[3]
-        venta.fecha_venta = row[1]
-        venta.nombre_cliente = row[7]
+        venta.serie_documento = row[1]
+        venta.numero_documento = row[2]
+        venta.fecha_venta = row[3]        
+        venta.codigo_tipo_documento = row[4]
+        venta.codigo_tipo_documento_identidad = row[5]
         venta.documento_cliente = row[6]
+        venta.nombre_cliente = row[7]
         venta.direccion_cliente = row[8] if row[8] != None else ''
-        venta.codigo_cliente = row[9]
-        venta.total_venta = row[11]
-        venta.total_bolsa_plastica = 0
+        venta.total_venta = float(row[9])
         venta.vendedor = row[10]
-        venta.codigo_tipo_documento_identidad = row[12]
-        venta.forma_pago = row[13]
-        venta.punto_venta = row[14]
-        venta.descuentos = row[15]        
-        venta.total_descuentos = 0 
+        venta.forma_pago = row[11]
+        venta.punto_venta = row[12]
+        venta.descuentos = float(row[13])
+        venta.igv = float(row[14])
+        venta.total_bolsa_plastica = 0        
+        venta.total_descuentos = 0
         detalle_ventas = []
         cursor.execute(sql_detail.format(venta.id_venta))
         for deta in cursor.fetchall():
-            detalle_ventas.append(DetalleVenta(deta[0],
-                                            deta[1], deta[2], deta[3], "UND", deta[4], 
-                                            deta[5], deta[7], deta[8], deta[9]))
-            venta.total_bolsa_plastica += deta[5] 
-            venta.total_descuentos += deta[7]
+            detalle_ventas.append(DetalleVenta(deta[0], deta[1], deta[2], deta[3], "UND", deta[4], 
+                                            deta[5], deta[6], deta[7], deta[8], deta[9], deta[10]))
+            venta.total_bolsa_plastica += float(deta[4]) 
+            venta.total_descuentos += float(deta[5])
         venta.detalle_ventas = detalle_ventas
         lista_ventas.append(venta)
     
@@ -190,26 +189,26 @@ def _generate_lista(ventas):
             descuentosT = {}
             descuentosT['codigo'] = '03'
             descuentosT['descripcion'] = "Descuento Global no afecta a la base imponible"
-            descuentosT['factor'] = float(venta.descuentos / venta.total_venta)
-            descuentosT['monto'] = float(venta.descuentos)
-            descuentosT['base'] = float(venta.total_venta)
+            descuentosT['factor'] = venta.descuentos / venta.total_venta
+            descuentosT['monto'] = venta.descuentos
+            descuentosT['base'] = venta.total_venta
             descT.append(descuentosT)
             header_dic['descuentos'] = descT
         
         # totales
         datos_totales = {}
         if venta.descuentos != 0: 
-            datos_totales['total_descuentos'] = round((float(venta.total_descuentos) + float(venta.descuentos)), 2)
+            datos_totales['total_descuentos'] = round(venta.total_descuentos + venta.descuentos, 2)
         datos_totales['total_exportacion'] = 0.00
-        datos_totales['total_operaciones_gravadas'] = 0.00
+        datos_totales['total_operaciones_gravadas'] = 0.00 if venta.igv == 0 else venta.total_venta 
         datos_totales['total_operaciones_inafectas'] = 0.00
-        datos_totales['total_operaciones_exoneradas'] = venta.total_venta - venta.total_bolsa_plastica
+        datos_totales['total_operaciones_exoneradas'] = venta.total_venta - venta.total_bolsa_plastica if venta.igv == 0 else 0.00
         datos_totales['total_operaciones_gratuitas'] = 0.00
         datos_totales['total_impuestos_bolsa_plastica'] = venta.total_bolsa_plastica
-        datos_totales['total_igv'] = 0.00
-        datos_totales['total_impuestos'] = 0.00
+        datos_totales['total_igv'] = 0.00 if venta.igv == 0 else venta.igv
+        datos_totales['total_impuestos'] = 0.00 if venta.igv == 0 else venta.igv + venta.total_bolsa_plastica
         datos_totales['total_valor'] = venta.total_venta
-        datos_totales['total_venta'] = venta.total_venta
+        datos_totales['total_venta'] = venta.total_venta + venta.igv
 
         header_dic['totales'] = datos_totales
 
@@ -221,11 +220,11 @@ def _generate_lista(ventas):
             item['codigo_producto_sunat'] = ''
             item['codigo_producto_gsl'] = ''
             item['unidad_de_medida'] = 'NIU'
-            item['cantidad'] = round((deta.cantidad), 2)
-            item["valor_unitario"] = deta.precio_producto
+            item['cantidad'] = round(deta.cantidad, 2)
+            item["valor_unitario"] = round((deta.precio_producto - deta.igv), 2)
             item['codigo_tipo_precio'] = '01'
             item['precio_unitario'] = deta.precio_producto
-            item['codigo_tipo_afectacion_igv'] = '20'
+            item['codigo_tipo_afectacion_igv'] = '20' if deta.igv == 0 else '10'
 
             # descuentos por item
             if venta.total_descuentos != 0:
@@ -233,19 +232,19 @@ def _generate_lista(ventas):
                 descuentos = {}
                 descuentos['codigo'] = '00'
                 descuentos['descripcion'] = "Descuento Lineal"
-                descuentos['factor'] = float(deta.desc_porcentaje / 100)
-                descuentos['monto'] = float(deta.desc_individual)
-                descuentos['base'] = float(deta.sub_total)
+                descuentos['factor'] = deta.desc_porcentaje / 100
+                descuentos['monto'] = deta.desc_individual
+                descuentos['base'] = deta.sub_total
                 desc.append(descuentos)
                 item['descuentos'] = desc
                 
-            item['total_base_igv'] = float(deta.sub_total) - float(deta.desc_individual)
+            item['total_base_igv'] = round(deta.monto_total/1.18, 2)
             item['porcentaje_igv'] = 18
-            item['total_igv'] = 0
+            item['total_igv'] = round(deta.monto_total - (deta.monto_total/1.18), 2) #0
             item['total_impuestos_bolsa_plastica'] = deta.total_impuestos_bolsa_plastica
-            item['total_impuestos'] = 0
-            item['total_valor_item'] = (deta.cantidad * deta.precio_producto)
-            item['total_item'] = round(float(deta.monto_total), 2)
+            item['total_impuestos'] = round(deta.monto_total - (deta.monto_total/1.18), 2) #0
+            item['total_valor_item'] = round(deta.monto_total/1.18, 2)#(deta.cantidad * deta.precio_producto)
+            item['total_item'] = round(deta.monto_total, 2)
             lista_items.append(item)
 
         header_dic['items'] = lista_items

@@ -29,12 +29,12 @@ if __name__ == "__main__":
 
     while True:
         try:
-            if state_doc:
-                print("Enviando...")
+            if state_doc:            
                 lista_ventas = leer_db_access()
                 create_document(lista_ventas)
                 time.sleep(1)  
         except Exception as e:
+            print("Enviando...")
             print(_get_time(1) + ": {}".format(e))
             time.sleep(2)
 
@@ -47,32 +47,32 @@ if __name__ == "__main__":
         resumen = leer_db_consulta()
         create_consulta(resumen)'''
         try:
-            if state_anul:
-                print("Anulados Facturas...")
+            if state_anul:                
                 lista_anulados = leer_db_fanulados()
                 create_anulados(lista_anulados, 1)
                 time.sleep(1)
         except Exception as e:
+            print("Anulados Facturas...")
             print(_get_time(1) + ": {}".format(e))
             time.sleep(2)
         
         try:
-            if state_anul:
-                print("Anulados Boletas...")
+            if state_anul:                
                 lista_anulados = leer_db_banulados()
                 create_anulados(lista_anulados, 3)
                 time.sleep(1)
         except Exception as e:
+            print("Anulados Boletas...")
             print(_get_time(1) + ": {}".format(e))
             time.sleep(2)
 
         time_now = _get_time(2)
         if  time_now >= time_notaC and time_now <= time_notaC2:        
-            try:
-                print("Notas Creditos...")
+            try:                
                 lista_notaCredito = leer_db_notaCredito()
                 create_notaCredito(lista_notaCredito)
             except Exception as e:
+                print("Notas Creditos...")
                 print(_get_time(1) + ": {}".format(e))
                 time.sleep(2)
 
