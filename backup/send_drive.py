@@ -57,7 +57,7 @@ def uploadFile(filename,filepath,mimetype):
 
 def searchFile(size, query, filename):
     services = getCredentials()
-    print('Serching File...')
+    print('Searching File...')
     f_mT = 'application/x-rar-compressed'
     results = services.files().list(pageSize = size,
                                     fields = "nextPageToken, files(id)",

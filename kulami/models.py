@@ -238,13 +238,13 @@ def _generate_lista(ventas):
                 desc.append(descuentos)
                 item['descuentos'] = desc
                 
-            item['total_base_igv'] = round(deta.monto_total/1.18, 2)
+            item['total_base_igv'] = deta.monto_total if deta.igv == 0 else round(deta.monto_total/1.18, 2)
             item['porcentaje_igv'] = 18
-            item['total_igv'] = round(deta.monto_total - (deta.monto_total/1.18), 2) #0
+            item['total_igv'] = 0 if deta.igv == 0 else round(deta.monto_total - (deta.monto_total/1.18), 2) 
             item['total_impuestos_bolsa_plastica'] = deta.total_impuestos_bolsa_plastica
-            item['total_impuestos'] = round(deta.monto_total - (deta.monto_total/1.18), 2) #0
-            item['total_valor_item'] = round(deta.monto_total/1.18, 2)#(deta.cantidad * deta.precio_producto)
-            item['total_item'] = round(deta.monto_total, 2)
+            item['total_impuestos'] = 0 if deta.igv == 0 else round(deta.monto_total - (deta.monto_total/1.18), 2)
+            item['total_valor_item'] = deta.monto_total if deta.igv == 0 else round(deta.monto_total/1.18, 2)#(deta.cantidad * deta.precio_producto)
+            item['total_item'] = deta.monto_total
             lista_items.append(item)
 
         header_dic['items'] = lista_items

@@ -10,6 +10,7 @@ db_time2 = config['BACKUP']['BU_TIME2']
 
 state_doc = eval(config['MAIN']['M_DOC'])
 state_anul = eval(config['MAIN']['M_ANUL'])
+state_guia = eval(config['MAIN']['M_GUIA'])
 time_notaC = config['MAIN']['M_TIMENC']
 time_notaC2 = config['MAIN']['M_TIMENC2']
 
@@ -22,8 +23,9 @@ if __name__ == "__main__":
     from kulami.models import leer_db_access
     from kulami.models_annulled import leer_db_fanulados, leer_db_banulados
     from kulami.models_notaCredito import leer_db_notaCredito
+    from kulami.models_guiaRemision import leer_db_guia
     #from kulami.models_resumen import leer_db_resumen, leer_db_consulta
-    from pseapi.api import create_document, create_anulados, create_notaCredito, create_resumen, create_consulta
+    from pseapi.api import create_document, create_anulados, create_notaCredito, create_resumen, create_consulta, create_guiaRemision
     from backup.postgresql_backup import backup
     from base.db import _get_time
 
@@ -37,15 +39,7 @@ if __name__ == "__main__":
             print("Enviando...")
             print(_get_time(1) + ": {}".format(e))
             time.sleep(2)
-
-        # if time_string == time_doc:
-        '''print("Resumenes...")
-        resumen = leer_db_resumen()
-        create_resumen(resumen, 'B')
-        time.sleep(1)
-        print("Consulta...")
-        resumen = leer_db_consulta()
-        create_consulta(resumen)'''
+        
         try:
             if state_anul:                
                 lista_anulados = leer_db_fanulados()
@@ -76,6 +70,17 @@ if __name__ == "__main__":
                 print(_get_time(1) + ": {}".format(e))
                 time.sleep(2)
 
+        #time_now = _get_time(2)
+        #if  time_now >= time_notaC and time_now <= time_notaC2:        
+        try:
+            if state_guia:
+                lista_guia = leer_db_guia()
+                create_guiaRemision(lista_guia)
+        except Exception as e:
+            print("Guia de Remision...")
+            print(_get_time(1) + ": {}".format(e))
+            time.sleep(2)
+
         time_now = _get_time(2)
         if  time_now >= db_time and time_now <= db_time2 and db_state:
             try:
@@ -84,3 +89,12 @@ if __name__ == "__main__":
             except Exception as e:
                 print(_get_time(1) + ": {}".format(e)) 
                 time.sleep(1)
+
+        # if time_string == time_doc:
+        '''print("Resumenes...")
+        resumen = leer_db_resumen()
+        create_resumen(resumen, 'B')
+        time.sleep(1)
+        print("Consulta...")
+        resumen = leer_db_consulta()
+        create_consulta(resumen)'''

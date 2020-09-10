@@ -152,3 +152,24 @@ def _send_cpe_consulta(url, token, data):
                 print(response.content)
             else:
                 print(response.status_code)
+
+def create_guiaRemision(header_dics):
+    convenio = read_empresa_pgsql()
+    url = convenio[1] + "/api/dispatches"
+    token = convenio[0]
+    _send_cpe_guia(url, token, header_dics)
+
+def _send_cpe_guia(url, token, data):
+    header = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer {}'.format(token)
+    }
+    for guia in data:
+            #print(guia)
+            response = requests.post(
+                url, json=guia, headers=header, verify=False)
+            if response.status_code == 200:
+                print(response.content)
+            else:
+                print(response.content)
+                print(response.status_code)
