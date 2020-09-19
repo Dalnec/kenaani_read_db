@@ -6,7 +6,8 @@ from base.db import ( _get_time,
     update_anulados_pgsql,
     update_notaCredito_pgsql,
     insert_resumen_pgsql,
-    update_consulta_pgsql
+    update_consulta_pgsql,
+    update_rechazados_pgsql
 )
 from urllib3.exceptions import InsecureRequestWarning
 
@@ -169,6 +170,30 @@ def _send_cpe_guia(url, token, data):
             response = requests.post(
                 url, json=guia, headers=header, verify=False)
             if response.status_code == 200:
+                print(response.content)
+            else:
+                print(response.content)
+                print(response.status_code)
+
+def create_rechazados(header_dics):
+    convenio = read_empresa_pgsql()
+    url = convenio[1] + "/api/documents"
+    token = convenio[0]
+    _send_cpe_rechazados(url, token, header_dics)
+
+def _send_cpe_rechazados(url, token, data):
+    header = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer {}'.format(token)
+    }
+    for rechazados in data:
+            print(rechazados)
+            response = requests.post(
+                url, json=rechazados, headers=header, verify=False)
+            if response.status_code == 200:
+                r_json=response.json()
+                external_id=r_json['data']['external_id']
+                update_rechazados_pgsql(external_id, int(rechazados['id_venta']))
                 print(response.content)
             else:
                 print(response.content)

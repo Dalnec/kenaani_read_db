@@ -24,8 +24,9 @@ if __name__ == "__main__":
     from kulami.models_annulled import leer_db_fanulados, leer_db_banulados
     from kulami.models_notaCredito import leer_db_notaCredito
     from kulami.models_guiaRemision import leer_db_guia
+    from kulami.models_rechazados import leer_db_rechazados
     #from kulami.models_resumen import leer_db_resumen, leer_db_consulta
-    from pseapi.api import create_document, create_anulados, create_notaCredito, create_resumen, create_consulta, create_guiaRemision
+    from pseapi.api import create_document, create_anulados, create_notaCredito, create_resumen, create_consulta, create_guiaRemision, create_rechazados
     from backup.postgresql_backup import backup
     from base.db import _get_time
 
@@ -40,6 +41,16 @@ if __name__ == "__main__":
             print(_get_time(1) + ": {}".format(e))
             time.sleep(2)
         
+        try:
+            if state_anul:                
+                lista_rechazados = leer_db_rechazados()
+                create_rechazados(lista_rechazados)
+                time.sleep(1)
+        except Exception as e:
+            print("Anulados Rechazados...")
+            print(_get_time(1) + ": {}".format(e))
+            time.sleep(2)
+
         try:
             if state_anul:                
                 lista_anulados = leer_db_fanulados()

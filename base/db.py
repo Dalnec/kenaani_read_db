@@ -69,6 +69,19 @@ def update_anulados_pgsql(ext_id, id):
             cursor.close()
             cnx.close()
 
+def update_rechazados_pgsql(ext_id, id):
+    try:
+        cnx = __conectarse()
+        cursor = cnx.cursor()
+        cursor.execute(
+            "UPDATE comercial.ventas SET observaciones_declaracion = %s WHERE id_venta = %s", (ext_id, id))
+        cnx.commit()
+    finally:
+        # closing database connection
+        if (cnx):
+            cursor.close()
+            cnx.close()
+
 def update_notaCredito_pgsql(ext_id, id):
     try:
         cnx = __conectarse()
