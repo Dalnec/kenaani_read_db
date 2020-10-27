@@ -87,7 +87,7 @@ def leer_db_guia():
     INNER JOIN comercial.tipodocumento TD ON TD.id_tipodocumento = G.id_tipo_documento_guia
     INNER JOIN comercial.tipodocumento ON tipodocumento.id_tipodocumento = G.id_tipodocumento
     INNER JOIN comercial.cliente C ON C.nombres_cliente = G.nombre_representante
-    WHERE G.estado = 'A'
+    WHERE G.estado = 'A' AND razonsocial = ''
     ORDER BY fecha_hora
     """
     sql_detail = """
@@ -152,11 +152,11 @@ def _generate_lista(guias):
         header_dic = {}
 
         # Opcionales
-        header_dic['id_venta'] = guia.id_guia
+        header_dic['id_guia'] = guia.id_guia
         header_dic['informacion_adicional'] = "Usuario:"+ guia.cod_empleado +"|Caja: "+ guia.punto_venta
         # Creamos el cuerpo del pse
         header_dic['serie_documento'] = 'T%s' % guia.serie_documento
-        header_dic['numero_documento'] = guia.numero_documento
+        header_dic['numero_documento'] = int(guia.numero_documento)
         header_dic['fecha_de_emision'] = guia.fecha_guia.strftime('%Y-%m-%d')
         header_dic['hora_de_emision'] = guia.fecha_guia.strftime('%H:%M:%S')
         header_dic['codigo_tipo_documento'] = guia.codigo_tipo_documento
@@ -196,19 +196,23 @@ def _generate_lista(guias):
         direccion_partida = {}
         direccion_partida['ubigeo'] = '220101'
         direccion_partida['direccion'] = guia.direccion_partida
+        header_dic['direccion_partida'] = direccion_partida
         # direccion llegada
         direccion_llegada = {}
         direccion_llegada['ubigeo'] = '220101'
         direccion_llegada['direccion'] = guia.direccion_llegada
+        header_dic['direccion_llegada'] = direccion_llegada
         # transportista
         transportista = {}
         transportista['codigo_tipo_documento_identidad'] = '6'
         transportista['numero_documento'] = guia.ruc_transportista
         transportista['apellidos_y_nombres_o_razon_social'] = guia.transporte
+        header_dic['transportista'] = transportista
         # chofer   
         chofer = {}
         chofer['codigo_tipo_documento_identidad'] = '1'
         chofer['numero_documento'] = guia.num_licencia
+        header_dic['chofer'] = chofer
         # continua cuerpo del pse
         header_dic['numero_de_placa'] = guia.placa_vehiculo
 
@@ -216,24 +220,24 @@ def _generate_lista(guias):
         lista_items = []
         for deta in guia.detalle_guias:
             item = {}
-            precio_producto = deta.monto / deta.cantidad
+            #precio_producto = deta.monto / deta.cantidad
             item['codigo_interno'] = deta.codigo_producto
-            item['descripcion'] = deta.nombre_producto
-            item['codigo_producto_sunat'] = ''
-            item['codigo_producto_gsl'] = ''
-            item['unidad_de_medida'] = 'NIU'
+            #item['descripcion'] = deta.nombre_producto
+            #item['codigo_producto_sunat'] = ''
+            #item['codigo_producto_gsl'] = ''
+            #item['unidad_de_medida'] = 'NIU'
             item['cantidad'] = round(deta.cantidad, 2)
-            item["valor_unitario"] = round(precio_producto, 2)
-            item['codigo_tipo_precio'] = '01'
-            item['precio_unitario'] = precio_producto
-            item['codigo_tipo_afectacion_igv'] = '20' #if deta.igv == 0 else '10'
-            item['total_base_igv'] = deta.monto #if deta.igv == 0 else round(deta.monto_total/1.18, 2)
-            item['porcentaje_igv'] = 18
-            item['total_igv'] = 0 #if deta.igv == 0 else round(deta.monto_total - (deta.monto_total/1.18), 2) 
+            #item["valor_unitario"] = round(precio_producto, 2)
+            #item['codigo_tipo_precio'] = '01'
+            #item['precio_unitario'] = precio_producto
+            #item['codigo_tipo_afectacion_igv'] = '20' #if deta.igv == 0 else '10'
+            #item['total_base_igv'] = deta.monto #if deta.igv == 0 else round(deta.monto_total/1.18, 2)
+            #item['porcentaje_igv'] = 18
+            #item['total_igv'] = 0 #if deta.igv == 0 else round(deta.monto_total - (deta.monto_total/1.18), 2) 
             #item['total_impuestos_bolsa_plastica'] = deta.total_impuestos_bolsa_plastica
-            item['total_impuestos'] = 0 #if deta.igv == 0 else round(deta.monto_total - (deta.monto_total/1.18), 2)
-            item['total_valor_item'] = deta.monto #if deta.igv == 0 else round(deta.monto_total/1.18, 2)#(deta.cantidad * deta.precio_producto)
-            item['total_item'] = deta.monto
+            #item['total_impuestos'] = 0 #if deta.igv == 0 else round(deta.monto_total - (deta.monto_total/1.18), 2)
+            #item['total_valor_item'] = deta.monto #if deta.igv == 0 else round(deta.monto_total/1.18, 2)#(deta.cantidad * deta.precio_producto)
+            #item['total_item'] = deta.monto
             lista_items.append(item)
 
         header_dic['items'] = lista_items

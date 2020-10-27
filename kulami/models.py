@@ -26,6 +26,7 @@ class Venta:
     descuentos = None
     total_descuentos = None
     igv = None
+    total_gratuito = None
     detalle_ventas = []
 
     def __str__(self):
@@ -134,6 +135,7 @@ def leer_db_access():
         venta.igv = float(row[14])
         venta.total_bolsa_plastica = 0        
         venta.total_descuentos = 0
+        venta.total_gratuito = 0
         detalle_ventas = []
         cursor.execute(sql_detail.format(venta.id_venta))
         for deta in cursor.fetchall():
@@ -141,6 +143,8 @@ def leer_db_access():
                                             deta[5], deta[6], deta[7], deta[8], deta[9], deta[10]))
             venta.total_bolsa_plastica += float(deta[4]) 
             venta.total_descuentos += float(deta[5])
+            if deta[8] == 0:
+                venta.total_gratuito += float(deta[2]) * float(deta[3])
         venta.detalle_ventas = detalle_ventas
         lista_ventas.append(venta)
     
@@ -203,7 +207,7 @@ def _generate_lista(ventas):
         datos_totales['total_operaciones_gravadas'] = 0.00 if venta.igv == 0 else venta.total_venta 
         datos_totales['total_operaciones_inafectas'] = 0.00
         datos_totales['total_operaciones_exoneradas'] = venta.total_venta - venta.total_bolsa_plastica if venta.igv == 0 else 0.00
-        datos_totales['total_operaciones_gratuitas'] = 0.00
+        datos_totales['total_operaciones_gratuitas'] = round(venta.total_gratuito, 2)
         datos_totales['total_impuestos_bolsa_plastica'] = venta.total_bolsa_plastica
         datos_totales['total_igv'] = 0.00 if venta.igv == 0 else venta.igv
         datos_totales['total_impuestos'] = 0.00 if venta.igv == 0 else venta.igv + venta.total_bolsa_plastica
@@ -212,22 +216,20 @@ def _generate_lista(ventas):
 
         header_dic['totales'] = datos_totales
 
+        # detalle de venta
         lista_items = []
         for deta in venta.detalle_ventas:
             item = {}       
             item['codigo_interno'] = deta.codigo_producto
             item['descripcion'] = deta.nombre_producto
             item['codigo_producto_sunat'] = ''
-            item['codigo_producto_gsl'] = ''
             item['unidad_de_medida'] = 'NIU'
             item['cantidad'] = round(deta.cantidad, 2)
-            item["valor_unitario"] = round((deta.precio_producto - deta.igv), 2)
             item['codigo_tipo_precio'] = '01'
             item['precio_unitario'] = deta.precio_producto
-            item['codigo_tipo_afectacion_igv'] = '20' if deta.igv == 0 else '10'
 
             # descuentos por item
-            if venta.total_descuentos != 0:
+            if deta.desc_individual != 0 and deta.monto_total!= 0 :
                 desc = []
                 descuentos = {}
                 descuentos['codigo'] = '00'
@@ -237,17 +239,53 @@ def _generate_lista(ventas):
                 descuentos['base'] = deta.sub_total
                 desc.append(descuentos)
                 item['descuentos'] = desc
-                
-            item['total_base_igv'] = deta.monto_total if deta.igv == 0 else round(deta.monto_total/1.18, 2)
-            item['porcentaje_igv'] = 18
-            item['total_igv'] = 0 if deta.igv == 0 else round(deta.monto_total - (deta.monto_total/1.18), 2) 
-            item['total_impuestos_bolsa_plastica'] = deta.total_impuestos_bolsa_plastica
-            item['total_impuestos'] = 0 if deta.igv == 0 else round(deta.monto_total - (deta.monto_total/1.18), 2)
-            item['total_valor_item'] = deta.monto_total if deta.igv == 0 else round(deta.monto_total/1.18, 2)#(deta.cantidad * deta.precio_producto)
-            item['total_item'] = deta.monto_total
-            lista_items.append(item)
+
+            if (deta.igv == 0 and deta.precio_producto != 0 and deta.monto_total != 0):
+                lista_items.append(_detalle_items_exonerada(deta, item))
+            elif (deta.igv != 0 and deta.precio_producto != 0 and deta.monto_total != 0):
+                lista_items.append(_detalle_items_gravado(deta, item))
+            else:
+                lista_items.append(_detalle_items_gratuito(deta, item))
 
         header_dic['items'] = lista_items
         header_dics.append(header_dic)
 
     return header_dics
+
+def _detalle_items_exonerada(deta, item):
+    item["valor_unitario"] = round(deta.precio_producto, 2)
+    item['codigo_tipo_afectacion_igv'] = '20'
+    item['total_base_igv'] = deta.monto_total
+    item['porcentaje_igv'] = 18
+    item['total_igv'] = 0 
+    item['total_impuestos_bolsa_plastica'] = deta.total_impuestos_bolsa_plastica
+    item['total_impuestos'] = 0
+    item['total_valor_item'] = deta.monto_total
+    item['total_item'] = deta.monto_total
+    return item
+
+def _detalle_items_gravado(deta, item):
+    item["valor_unitario"] = round((deta.precio_producto - deta.igv), 2)
+    item['codigo_tipo_afectacion_igv'] = '10'
+    item['total_base_igv'] = round(deta.monto_total/1.18, 2)
+    item['porcentaje_igv'] = 18
+    item['total_igv'] = round(deta.monto_total - (deta.monto_total/1.18), 2) 
+    item['total_impuestos_bolsa_plastica'] = deta.total_impuestos_bolsa_plastica
+    item['total_impuestos'] = round(deta.monto_total - (deta.monto_total/1.18), 2)
+    item['total_valor_item'] = round(deta.monto_total/1.18, 2)#(deta.cantidad * deta.precio_producto)
+    item['total_item'] = deta.monto_total
+    return item
+
+def _detalle_items_gratuito(deta, item):
+    item["valor_unitario"] = 0
+    item['codigo_tipo_precio'] = '02'
+    item['precio_unitario'] = 0
+    item['codigo_tipo_afectacion_igv'] = '21' #'16'
+    item['total_base_igv'] = deta.cantidad * deta.precio_producto if deta.igv == 0 else round(deta.cantidad * deta.precio_producto/1.18, 2)
+    item['porcentaje_igv'] = 18
+    item['total_igv'] = 0 if deta.igv == 0 else round(deta.monto_total - (deta.monto_total/1.18), 2) 
+    item['total_impuestos_bolsa_plastica'] = deta.total_impuestos_bolsa_plastica
+    item['total_impuestos'] = 0
+    item['total_valor_item'] = 0
+    item['total_item'] = 0
+    return item

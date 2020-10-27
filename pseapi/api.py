@@ -7,6 +7,7 @@ from base.db import ( _get_time,
     update_notaCredito_pgsql,
     insert_resumen_pgsql,
     update_consulta_pgsql,
+    update_guia_pgsql,
     update_rechazados_pgsql
 )
 from urllib3.exceptions import InsecureRequestWarning
@@ -30,7 +31,7 @@ def _send_cpe(url, token, data):
     #cont = 0
     for venta in data:
         #if cont == 0:
-            #print(venta)
+            print(venta)
             response = requests.post(
                 url, json=venta, headers=header, verify=False)
             if response.status_code == 200:
@@ -166,10 +167,13 @@ def _send_cpe_guia(url, token, data):
         'Authorization': 'Bearer {}'.format(token)
     }
     for guia in data:
-            #print(guia)
+            print(guia)
             response = requests.post(
                 url, json=guia, headers=header, verify=False)
             if response.status_code == 200:
+                r_json=response.json()
+                external_id=r_json['data']['external_id']
+                update_guia_pgsql(external_id, int(guia['id_guia']))
                 print(response.content)
             else:
                 print(response.content)

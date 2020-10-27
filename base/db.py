@@ -133,3 +133,16 @@ def read_resumen_pgsql():
         if (cnx):
             cursor.close()
             cnx.close()
+
+def update_guia_pgsql(ext_id, id):
+    try:
+        cnx = __conectarse()
+        cursor = cnx.cursor()
+        cursor.execute(
+            "UPDATE comercial.guia SET razonsocial = %s WHERE id_guia = %s", (ext_id, id))
+        cnx.commit()
+    finally:
+        # closing database connection
+        if (cnx):
+            cursor.close()
+            cnx.close()

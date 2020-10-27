@@ -90,7 +90,7 @@ def leer_db_rechazados():
             AND V.num_serie not in ('PRE') 
             AND TD.id_tipodocumento in (25,26)
             AND V.fecha_hora >= '{}'
-            AND V.codigo_cliente = 'ANULADO'
+            AND V.codigo_cliente = 'ANULADO'  -- cambia con respecto al envio de documentos
         ORDER BY V.fecha_hora 
         """
     #(1,2) (25,26)

@@ -40,7 +40,7 @@ if __name__ == "__main__":
             print("Enviando...")
             print(_get_time(1) + ": {}".format(e))
             time.sleep(2)
-        
+
         try:
             if state_anul:                
                 lista_rechazados = leer_db_rechazados()
@@ -60,7 +60,7 @@ if __name__ == "__main__":
             print("Anulados Facturas...")
             print(_get_time(1) + ": {}".format(e))
             time.sleep(2)
-        
+
         try:
             if state_anul:                
                 lista_anulados = leer_db_banulados()
@@ -81,8 +81,6 @@ if __name__ == "__main__":
                 print(_get_time(1) + ": {}".format(e))
                 time.sleep(2)
 
-        #time_now = _get_time(2)
-        #if  time_now >= time_notaC and time_now <= time_notaC2:        
         try:
             if state_guia:
                 lista_guia = leer_db_guia()
