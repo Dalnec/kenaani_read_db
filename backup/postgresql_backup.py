@@ -11,6 +11,7 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 
 db_name = config['BASE']['DB_NAME']
+db_port = config['BASE']['DB_PORT']
 bu_name = config['BACKUP']['BU_NAME']
 db_drive = eval(config['BACKUP']['BU_DRIVE'])
 
@@ -32,7 +33,7 @@ def backup():
 
 def _create_file():
     print('Backup...')
-    cmd ='pg_dump -d '+ db_name +' -p 5432 -U comercial -F t -f '+ file_name
+    cmd ='pg_dump -d '+ db_name +' -p ' + db_port + ' -U comercial -F t -f '+ file_name
     with gzip.open(file_name, 'wb') as f:
         popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)    
     for stdout_line in iter(popen.stdout.readline, ""):
