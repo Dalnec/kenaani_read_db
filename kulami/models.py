@@ -28,7 +28,7 @@ class Venta:
     igv = None
     total_gratuito = None
     sumSubtotales = None
-    sumSubtotalesIgv = None
+    #sumSubtotalesIgv = None
     detalle_ventas = []
 
     def __str__(self):
@@ -139,7 +139,7 @@ def leer_db_access():
         venta.total_descuentos = 0.00
         venta.total_gratuito = 0.00
         venta.sumSubtotales = 0.00
-        venta.sumSubtotalesIgv = 0.00
+        #venta.sumSubtotalesIgv = 0.00
         detalle_ventas = []
         cursor.execute(sql_detail.format(venta.id_venta))
         for deta in cursor.fetchall():
@@ -148,9 +148,9 @@ def leer_db_access():
             venta.total_bolsa_plastica += float(deta[4]) 
             venta.total_descuentos += float(deta[5])
             venta.sumSubtotales += float(deta[2]) * float(deta[3]) #suma de precios*cantidades sin IGV
-            venta.sumSubtotalesIgv += round(float(deta[2]), 2) * round(float(deta[3]) * 1.18,2) #suma de precios*cantidades con IGV
+            #venta.sumSubtotalesIgv += round(float(deta[2]), 2) * round(float(deta[3]) * 1.18,2) #suma de precios*cantidades con IGV
             if deta[8] == 0:
-                venta.total_gratuito += float(deta[2]) * float(deta[3])
+                venta.total_gratuito += venta.sumSubtotales#float(deta[2]) * float(deta[3])
         venta.detalle_ventas = detalle_ventas
         lista_ventas.append(venta)
     
@@ -199,9 +199,9 @@ def _generate_lista(ventas):
             descuentosT = {}
             descuentosT['codigo'] = '02'
             descuentosT['descripcion'] = "Descuento Global afecta a la base imponible"
-            descuentosT['factor'] = round(venta.total_descuentos/venta.sumSubtotales, 2)#venta.descuentos / venta.total_venta
-            descuentosT['monto'] = round(venta.total_descuentos, 2) #venta.descuentos
-            descuentosT['base'] = round(venta.sumSubtotales, 2) #venta.total_venta
+            descuentosT['factor'] = round(venta.total_descuentos/venta.sumSubtotales, 2)
+            descuentosT['monto'] = round(venta.total_descuentos, 2)
+            descuentosT['base'] = round(venta.sumSubtotales, 2)
             descT.append(descuentosT)
             header_dic['descuentos'] = descT
         
@@ -210,16 +210,23 @@ def _generate_lista(ventas):
         if venta.total_descuentos != 0: #venta.descuentos != 0:
             datos_totales['total_descuentos'] = round(venta.total_descuentos + venta.descuentos, 2)
         datos_totales['total_exportacion'] = 0.00
-        datos_totales['total_operaciones_gravadas'] = 0.00 if venta.igv == 0 else round(venta.sumSubtotales, 2) #venta.total_venta 
+        datos_totales['total_operaciones_gravadas'] = 0.00 #if venta.igv == 0 else round(venta.sumSubtotales, 2)
         datos_totales['total_operaciones_inafectas'] = 0.00
-        datos_totales['total_operaciones_exoneradas'] = venta.total_venta - venta.total_bolsa_plastica if venta.igv == 0 else 0.00
+        datos_totales['total_operaciones_exoneradas'] = venta.total_venta - venta.total_bolsa_plastica + round(venta.total_descuentos + venta.descuentos, 2)#if venta.igv == 0 else 0.00
         datos_totales['total_operaciones_gratuitas'] = round(venta.total_gratuito, 2)
         #datos_totales['total_impuestos_bolsa_plastica'] = venta.total_bolsa_plastica
-        datos_totales['total_igv'] = 0.00 if venta.igv == 0 else round((venta.sumSubtotales - venta.total_descuentos )*0.18, 2)
-        datos_totales['total_impuestos'] = 0.00 if venta.igv == 0 else round((venta.sumSubtotales - venta.total_descuentos )*0.18, 2)
+        datos_totales['total_igv'] = 0.00 #if venta.igv == 0 else round((venta.sumSubtotales - venta.total_descuentos )*0.18, 2)
+        datos_totales['total_impuestos'] = 0.00 #if venta.igv == 0 else round((venta.sumSubtotales - venta.total_descuentos )*0.18, 2)
         datos_totales['total_valor'] = round(venta.sumSubtotales - venta.total_descuentos, 2) #venta.total_venta
-        datos_totales['total_venta'] = round(venta.sumSubtotalesIgv,2) - round(venta.total_descuentos, 2)# venta.total_venta + venta.igv
-
+        datos_totales['total_venta'] = venta.total_venta #round(venta.sumSubtotalesIgv,2) - round(venta.total_descuentos, 2)# venta.total_venta + venta.igv
+        #TOTAL_VENTA=SumaSubtotalesSinIGV - total_descuentos + totalIGV
+        if venta.igv != 0:
+            totalIGV = round((venta.sumSubtotales - venta.total_descuentos )*0.18, 2)
+            datos_totales['total_operaciones_gravadas'] = round(venta.sumSubtotales, 2)
+            datos_totales['total_operaciones_exoneradas'] = 0.00
+            datos_totales['total_igv'] = totalIGV
+            datos_totales['total_impuestos'] = totalIGV
+            datos_totales['total_venta'] = venta.sumSubtotales - venta.total_descuentos + totalIGV
         header_dic['totales'] = datos_totales
 
         # detalle de venta
