@@ -26,6 +26,7 @@ class Venta:
     descuentos = None
     total_descuentos = None
     igv = None
+    igv_real = None
     total_gratuito = None
     sumSubtotales = None
     #sumSubtotalesIgv = None
@@ -71,12 +72,23 @@ def leer_db_access():
             case when C.dni !='' then C.dni when C.ruc !='' then C.ruc else '00000000' end cliente_numero_de_documento,--6
             C.nombres_cliente,--7
             D.direccion,--8
-            (case when (select sum(dv.monto_impuesto_bolsas) from comercial.detalle_venta dv where dv.id_venta= V.id_venta and dv.monto_impuesto_bolsas != 0) is null then 0 else (select sum(dv.monto_impuesto_bolsas)from comercial.detalle_venta dv where dv.id_venta= V.id_venta and dv.monto_impuesto_bolsas != 0 ) end ) + V.monto_venta total,
+            (case 
+                when (
+                    select sum(dv.monto_impuesto_bolsas) 
+                    from comercial.detalle_venta dv 
+                    where dv.id_venta= V.id_venta and dv.monto_impuesto_bolsas != 0) 
+                is null then 0 
+                else (
+                    select sum(dv.monto_impuesto_bolsas)
+                    from comercial.detalle_venta dv 
+                    where dv.id_venta= V.id_venta and dv.monto_impuesto_bolsas != 0 ) 
+                end ) + V.monto_venta total,
             V.cod_empleado,--10               
             MP.descripcion as forma_pago,--11
             V.id_puntodeventa,--12
             V.descuento,--13
-            V.igv --14
+            V.igv, --14
+            (V.monto_venta * 0.18)::numeric(12,3) as igv_real --15
         FROM comercial.ventas V
             INNER JOIN comercial.tipodocumento TD ON TD.id_tipodocumento = V.id_tipodocumento
             INNER JOIN comercial.cliente C ON C.codigo_cliente = V.codigo_cliente
@@ -135,6 +147,7 @@ def leer_db_access():
         venta.punto_venta = row[12]
         venta.descuentos = float(row[13])
         venta.igv = float(row[14])
+        venta.igv_real = float(row[15])
         venta.total_bolsa_plastica = 0.00        
         venta.total_descuentos = 0.00
         venta.total_gratuito = 0.00
@@ -214,19 +227,19 @@ def _generate_lista(ventas):
         datos_totales['total_operaciones_inafectas'] = 0.00
         datos_totales['total_operaciones_exoneradas'] = venta.total_venta - venta.total_bolsa_plastica + round(venta.total_descuentos + venta.descuentos, 2)#if venta.igv == 0 else 0.00
         datos_totales['total_operaciones_gratuitas'] = round(venta.total_gratuito, 2)
-        #datos_totales['total_impuestos_bolsa_plastica'] = venta.total_bolsa_plastica
+        datos_totales['total_impuestos_bolsa_plastica'] = venta.total_bolsa_plastica
         datos_totales['total_igv'] = 0.00 #if venta.igv == 0 else round((venta.sumSubtotales - venta.total_descuentos )*0.18, 2)
         datos_totales['total_impuestos'] = 0.00 #if venta.igv == 0 else round((venta.sumSubtotales - venta.total_descuentos )*0.18, 2)
         datos_totales['total_valor'] = round(venta.sumSubtotales - venta.total_descuentos, 2) #venta.total_venta
         datos_totales['total_venta'] = venta.total_venta #round(venta.sumSubtotalesIgv,2) - round(venta.total_descuentos, 2)# venta.total_venta + venta.igv
         #TOTAL_VENTA=SumaSubtotalesSinIGV - total_descuentos + totalIGV
         if venta.igv != 0:
-            totalIGV = round((venta.sumSubtotales - venta.total_descuentos )*0.18, 2)
+            # totalIGV = round((venta.sumSubtotales - venta.total_descuentos )*0.18, 2)
             datos_totales['total_operaciones_gravadas'] = round(venta.sumSubtotales, 2)
             datos_totales['total_operaciones_exoneradas'] = 0.00
-            datos_totales['total_igv'] = totalIGV
-            datos_totales['total_impuestos'] = totalIGV
-            datos_totales['total_venta'] = venta.sumSubtotales - venta.total_descuentos + totalIGV
+            datos_totales['total_igv'] = venta.igv_real #totalIGV
+            datos_totales['total_impuestos'] = venta.igv_real
+            datos_totales['total_venta'] = venta.total_venta + venta.igv_real #venta.sumSubtotales - venta.total_descuentos + totalIGV
         header_dic['totales'] = datos_totales
 
         # detalle de venta
