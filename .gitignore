@@ -3,6 +3,7 @@ __pycache__
 build
 dist
 venv
+venv32
 backup.gz
 Carina.backup
 Carina.backup.gz
@@ -10,5 +11,7 @@ token.pickle
 backup/credenciales/
 apiazul.ico
 apirojo.ico
+api.ico
 credentials_Dany.json
 requirements1.txt
+debug.log

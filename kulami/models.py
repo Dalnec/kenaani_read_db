@@ -27,6 +27,7 @@ class Venta:
     total_descuentos = None
     igv = None
     total_gratuito = None
+    sumSubtotales = None
     detalle_ventas = []
 
     def __str__(self):
@@ -35,7 +36,7 @@ class Venta:
 
 class DetalleVenta:
     def __init__(self, codigo_producto, nombre_producto, cantidad, precio_producto, unidad_medida, total_impuestos_bolsa_plastica,
-                desc_individual, desc_porcentaje, sub_total, monto_total, igv, igv_descuento):
+                desc_individual, desc_porcentaje, sub_total, monto_total, igv, igv_descuento, descuento_total):
         self.codigo_producto = codigo_producto
         self.nombre_producto = nombre_producto
         self.cantidad = float(cantidad)
@@ -48,6 +49,7 @@ class DetalleVenta:
         self.monto_total = float(monto_total)
         self.igv = float(igv)
         self.igv_descuento = float(igv_descuento)
+        self.descuento_total = float(descuento_total)
 
     def __str__(self):
         return self.nombre_producto
@@ -105,7 +107,8 @@ def leer_db_access():
             (DV.cantidad * DV.monto) sub_total, --7
             monto_total, --8
             DV.igv, 	--9
-            DV.igv_descuento --10
+            DV.igv_descuento, --10
+            DV.descuento_total --11
         FROM
             comercial.detalle_venta DV
             INNER JOIN comercial.producto P ON P.codigo_producto = DV.codigo_producto
@@ -136,13 +139,15 @@ def leer_db_access():
         venta.total_bolsa_plastica = 0        
         venta.total_descuentos = 0
         venta.total_gratuito = 0
+        venta.sumSubtotales = 0
         detalle_ventas = []
         cursor.execute(sql_detail.format(venta.id_venta))
         for deta in cursor.fetchall():
             detalle_ventas.append(DetalleVenta(deta[0], deta[1], deta[2], deta[3], "UND", deta[4], 
-                                            deta[5], deta[6], deta[7], deta[8], deta[9], deta[10]))
+                                            deta[5], deta[6], deta[7], deta[8], deta[9], deta[10], deta[11]))
             venta.total_bolsa_plastica += float(deta[4]) 
             venta.total_descuentos += float(deta[5])
+            venta.sumSubtotales += float(deta[2]) * float(deta[3]) #suma de precios*cantidades sin IGV
             if deta[8] == 0:
                 venta.total_gratuito += float(deta[2]) * float(deta[3])
         venta.detalle_ventas = detalle_ventas
@@ -191,11 +196,13 @@ def _generate_lista(ventas):
         if venta.descuentos != 0:
             descT = []
             descuentosT = {}
-            descuentosT['codigo'] = '03'
-            descuentosT['descripcion'] = "Descuento Global no afecta a la base imponible"
-            descuentosT['factor'] = venta.descuentos / venta.total_venta
-            descuentosT['monto'] = venta.descuentos
-            descuentosT['base'] = venta.total_venta
+            # descuentosT['codigo'] = '03'
+            # descuentosT['descripcion'] = "Descuento Global no afecta a la base imponible"
+            descuentosT['codigo'] = '02'
+            descuentosT['descripcion'] = "Descuento Global afecta a la base imponible"
+            descuentosT['factor'] = round(venta.descuentos/venta.sumSubtotales, 2)
+            descuentosT['monto'] = round(venta.descuentos, 2)
+            descuentosT['base'] = round(venta.sumSubtotales, 2)
             descT.append(descuentosT)
             header_dic['descuentos'] = descT
         
@@ -206,13 +213,13 @@ def _generate_lista(ventas):
         datos_totales['total_exportacion'] = 0.00
         datos_totales['total_operaciones_gravadas'] = 0.00 if venta.igv == 0 else venta.total_venta 
         datos_totales['total_operaciones_inafectas'] = 0.00
-        datos_totales['total_operaciones_exoneradas'] = venta.total_venta - venta.total_bolsa_plastica if venta.igv == 0 else 0.00
+        datos_totales['total_operaciones_exoneradas'] = venta.sumSubtotales - venta.total_bolsa_plastica if venta.igv == 0 else 0.00
         datos_totales['total_operaciones_gratuitas'] = round(venta.total_gratuito, 2)
         datos_totales['total_impuestos_bolsa_plastica'] = venta.total_bolsa_plastica
         datos_totales['total_igv'] = 0.00 if venta.igv == 0 else venta.igv
         datos_totales['total_impuestos'] = 0.00 if venta.igv == 0 else venta.igv + venta.total_bolsa_plastica
         datos_totales['total_valor'] = venta.total_venta
-        datos_totales['total_venta'] = venta.total_venta + venta.igv
+        datos_totales['total_venta'] = venta.total_venta + venta.igv #- venta.total_descuentos - venta.descuentos
 
         header_dic['totales'] = datos_totales
 
@@ -261,7 +268,7 @@ def _detalle_items_exonerada(deta, item):
     item['total_impuestos_bolsa_plastica'] = deta.total_impuestos_bolsa_plastica
     item['total_impuestos'] = 0
     item['total_valor_item'] = deta.monto_total
-    item['total_item'] = deta.monto_total
+    item['total_item'] = deta.monto_total if deta.descuento_total == 0 else (deta.cantidad * deta.precio_producto)
     return item
 
 def _detalle_items_gravado(deta, item):
