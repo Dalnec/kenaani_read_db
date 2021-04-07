@@ -29,7 +29,7 @@ class Venta:
     igv_real = None
     total_gratuito = None
     sumSubtotales = None
-    #sumSubtotalesIgv = None
+    sumIGVs = None
     detalle_ventas = []
 
     def __str__(self):
@@ -108,25 +108,39 @@ def leer_db_access():
         """
     #(1,2) (25,26)
     sql_detail = """
-        SELECT distinct 
-            P.codigo_producto codigo,--0
-            DV.descripcion,		--1
-            DV.cantidad,		--2
-            DV.monto precio_unitario,--3
-            case when P.impuesto_bolsas = 'TRUE' then (select parametros.valor::DECIMAL from comercial.parametros where id_parametros = 72) * DV.cantidad else 0 end impuesto_bolsas,--4
-            DV. descuento_individual,--5
-            porcentaje_descuento,--6
-            (DV.cantidad * DV.monto) sub_total, --7
-            monto_total, --8
-            DV.igv, 	--9
-            DV.igv_descuento --10
-        FROM
-            comercial.detalle_venta DV
-            INNER JOIN comercial.producto P ON P.codigo_producto = DV.codigo_producto
-            INNER JOIN comercial.detalle_producto DP ON P.codigo_producto = DP.codigo_producto
-            INNER JOIN comercial.ventas V ON V.id_venta = DV.id_venta
-        WHERE
-            V.id_venta = {}
+        SELECT          
+            dv.codigo_producto as itco_codigo_interno, --0        
+            dv.descripcion as itco_descripcion,   --1
+            dv.cantidad::numeric(12,3) as itco_cantidad, --2
+            dv.itco_precio_unitario, --3 con IGV	
+            dv.monto_impuesto_bolsas as itco_icbper, --4
+            CASE WHEN dv.itco_sub_total = 0 THEN 0 ELSE dv.itco_descuento_sin_igv END as itco_descuento_sin_igv, --5
+            dv.itco_valor_unitario, --6 sin IGV
+            CASE WHEN dv.itco_sub_total = 0 THEN (dv.itco_precio_unitario * dv.cantidad)::numeric(12,3) ELSE dv.itco_total END as itco_total, --7
+            CASE WHEN dv.itco_sub_total = 0 THEN (dv.itco_valor_unitario * dv.cantidad)::numeric(12,3) ELSE dv.itco_sub_total END as itco_sub_total, --8   
+            CASE WHEN dv.itco_sub_total = 0 THEN (dv.itco_precio_unitario * dv.cantidad)::numeric(12,3) - (dv.itco_valor_unitario * dv.cantidad)::numeric(12,3) ELSE dv.itco_igv END as itco_igv,--9
+            CASE WHEN dv.itco_sub_total = 0 THEN 0 ELSE dv.itco_descuento END as itco_descuento, --10 con IGV     
+        
+            CASE WHEN dv.itco_sub_total = 0 THEN  
+                (case when (dv.itco_precio_unitario * dv.cantidad)::numeric(12,3) - (dv.itco_valor_unitario * dv.cantidad)::numeric(12,3) = 0 then '21' else '31' end)  
+            ELSE  
+                (case    
+                    when v.con_igv = 'S' AND pp.cobrar_igv = 'A' then          
+                        '10'         
+                    when v.con_igv = 'S' AND pp.cobrar_igv = 'E' then         
+                        '20'        
+                    when v.con_igv = 'S' AND pp.cobrar_igv = 'I' then         
+                        '30'        
+                    when v.con_igv = 'N' then         
+                        '20'        
+                end)   
+            END as tiai_codigo,--11 verifica si es exonerado gravado etc
+            dv.id_detalle_venta      
+        FROM comercial.view_venta v       
+        INNER JOIN comercial.view_detalle_venta dv on v.id_venta = dv.id_venta       
+        INNER JOIN comercial.producto pp on dv.codigo_producto = pp.codigo_producto
+        WHERE v.id_venta = {} -- 16--28 --16
+        ORDER BY id_detalle_venta 
         """
     cursor.execute(sql_header.format(date_header))
 
@@ -152,7 +166,7 @@ def leer_db_access():
         venta.total_descuentos = 0.00
         venta.total_gratuito = 0.00
         venta.sumSubtotales = 0.00
-        #venta.sumSubtotalesIgv = 0.00
+        venta.sumIGVs = 0.00
         detalle_ventas = []
         cursor.execute(sql_detail.format(venta.id_venta))
         for deta in cursor.fetchall():
@@ -160,10 +174,10 @@ def leer_db_access():
                                             deta[5], deta[6], deta[7], deta[8], deta[9], deta[10]))
             venta.total_bolsa_plastica += float(deta[4]) 
             venta.total_descuentos += float(deta[5])
-            venta.sumSubtotales += float(deta[2]) * float(deta[3]) #suma de precios*cantidades sin IGV
-            #venta.sumSubtotalesIgv += round(float(deta[2]), 2) * round(float(deta[3]) * 1.18,2) #suma de precios*cantidades con IGV
+            venta.sumIGVs += float(deta[9])
+            venta.sumSubtotales += float(deta[7])
             if deta[8] == 0:
-                venta.total_gratuito += venta.sumSubtotales#float(deta[2]) * float(deta[3])
+                venta.total_gratuito += venta.sumSubtotales
         venta.detalle_ventas = detalle_ventas
         lista_ventas.append(venta)
     
@@ -223,23 +237,21 @@ def _generate_lista(ventas):
         if venta.total_descuentos != 0: #venta.descuentos != 0:
             datos_totales['total_descuentos'] = round(venta.total_descuentos + venta.descuentos, 2)
         datos_totales['total_exportacion'] = 0.00
-        datos_totales['total_operaciones_gravadas'] = 0.00 #if venta.igv == 0 else round(venta.sumSubtotales, 2)
+        datos_totales['total_operaciones_gravadas'] = 0.00
         datos_totales['total_operaciones_inafectas'] = 0.00
-        datos_totales['total_operaciones_exoneradas'] = venta.total_venta - venta.total_bolsa_plastica + round(venta.total_descuentos + venta.descuentos, 2)#if venta.igv == 0 else 0.00
+        datos_totales['total_operaciones_exoneradas'] = venta.total_venta - venta.total_bolsa_plastica + round(venta.total_descuentos + venta.descuentos, 2)
         datos_totales['total_operaciones_gratuitas'] = round(venta.total_gratuito, 2)
         datos_totales['total_impuestos_bolsa_plastica'] = venta.total_bolsa_plastica
-        datos_totales['total_igv'] = 0.00 #if venta.igv == 0 else round((venta.sumSubtotales - venta.total_descuentos )*0.18, 2)
-        datos_totales['total_impuestos'] = 0.00 #if venta.igv == 0 else round((venta.sumSubtotales - venta.total_descuentos )*0.18, 2)
-        datos_totales['total_valor'] = round(venta.sumSubtotales - venta.total_descuentos, 2) #venta.total_venta
-        datos_totales['total_venta'] = venta.total_venta #round(venta.sumSubtotalesIgv,2) - round(venta.total_descuentos, 2)# venta.total_venta + venta.igv
-        #TOTAL_VENTA=SumaSubtotalesSinIGV - total_descuentos + totalIGV
+        datos_totales['total_igv'] = 0.00
+        datos_totales['total_impuestos'] = 0.00
+        datos_totales['total_valor'] = round(venta.sumSubtotales - venta.total_descuentos, 2)
+        datos_totales['total_venta'] = venta.total_venta
         if venta.igv != 0:
-            # totalIGV = round((venta.sumSubtotales - venta.total_descuentos )*0.18, 2)
             datos_totales['total_operaciones_gravadas'] = round(venta.sumSubtotales, 2)
             datos_totales['total_operaciones_exoneradas'] = 0.00
-            datos_totales['total_igv'] = venta.igv_real #totalIGV
-            datos_totales['total_impuestos'] = venta.igv_real
-            datos_totales['total_venta'] = venta.total_venta + venta.igv_real #venta.sumSubtotales - venta.total_descuentos + totalIGV
+            datos_totales['total_igv'] = venta.sumIGVs
+            datos_totales['total_impuestos'] = venta.sumIGVs
+            datos_totales['total_venta'] = venta.total_venta + venta.sumIGVs
         header_dic['totales'] = datos_totales
 
         # detalle de venta
@@ -296,7 +308,7 @@ def _detalle_items_gravado(deta, item):
     item['total_base_igv'] = round((deta.cantidad * deta.precio_producto), 2) #round(deta.monto_total/1.18, 2)
     item['porcentaje_igv'] = 18
     item['total_igv'] = round((deta.cantidad * deta.precio_producto)*0.18, 2) #round(deta.monto_total - (deta.monto_total/1.18), 2) 
-    #item['total_impuestos_bolsa_plastica'] = deta.total_impuestos_bolsa_plastica
+    item['total_impuestos_bolsa_plastica'] = deta.total_impuestos_bolsa_plastica
     item['total_impuestos'] = round((deta.cantidad * deta.precio_producto)*0.18, 2)
     item['total_valor_item'] = round((deta.cantidad * deta.precio_producto), 2) #round(deta.monto_total/1.18, 2)#(deta.cantidad * deta.precio_producto)
     item['total_item'] = round((deta.cantidad * round(deta.precio_producto *1.18,2)), 2) #+ deta.desc_individual, 4)
