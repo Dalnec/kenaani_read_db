@@ -46,12 +46,20 @@ def leer_db_notaCredito():
 
     sql_header = """
             SELECT N.id_notas_credito_debito, N.serie, N.numero, N.fecha, N.codigo_motivo,
-                N.motivo, V.observaciones_declaracion, N.ruc, N.persona, N.direccion, N.id_puntodeventa
-            FROM comercial.notas_credito_debito AS N,
-                comercial.ventas as V
+                N.motivo, V.observaciones_declaracion as observaciones_declaracion_venta,
+				case when C.dni !='' then C.dni when C.ruc !='' then C.ruc else '00000000' end cliente_numero_de_documento, 
+				N.persona, N.direccion, N.id_puntodeventa, TD.codigo_sunat,
+				case when C.ruc !='' then '6' when C.dni !='' then '1'  else '0' end cliente_tipo_de_documento,
+                V.num_serie, V.num_documento
+            FROM comercial.notas_credito_debito N,
+                comercial.ventas V,
+				comercial.cliente C,
+				comercial.tipodocumento TD
             WHERE N.id_referencia = V.id_venta
                 AND N.estado_declaracion = 'PENDIENTE'
                 AND N.observaciones_declaracion = ''
+				AND C.codigo_cliente = V.codigo_cliente
+				AND TD.id_tipodocumento = V.id_tipodocumento
             ORDER BY N.id_notas_credito_debito
         """
 
@@ -77,7 +85,12 @@ def leer_db_notaCredito():
         
         venta.forma_pago = ''
         venta.punto_venta = row[10]
-
+        
+        venta.codigo_tipo_documento = row[11]
+        venta.codigo_tipo_documento_identidad = row[12]
+        venta.serie_venta = row[13]
+        venta.numero_venta = row[14]
+        
         detalle_ventas = []
         total = 0.0
         cursor.execute(sql_detail.format(venta.id_venta))
@@ -98,7 +111,7 @@ def _generate_lista(ventas):
     
     header_dics = []
     for venta in ventas:
-        codigo_tipo_documento = '07' 
+        #codigo_tipo_documento = '07' # Nota de Credito 
         codigo_tipo_moneda = 'PEN'
         header_dic = {}
 
@@ -111,17 +124,25 @@ def _generate_lista(ventas):
         header_dic['numero_documento'] = int(venta.numero_documento)
         header_dic['fecha_de_emision'] = venta.fecha_venta.strftime('%Y-%m-%d')
         header_dic['hora_de_emision'] = venta.fecha_venta.strftime('%H:%M:%S')
-        header_dic['codigo_tipo_documento'] = codigo_tipo_documento
+        header_dic['codigo_tipo_documento'] = '07' # venta.codigo_tipo_documento
         header_dic['codigo_tipo_nota'] = venta.codigo_tipo_nota
         header_dic['motivo_o_sustento_de_nota'] = venta.motivo_o_sustento_de_nota
         header_dic['codigo_tipo_moneda'] = codigo_tipo_moneda
         header_dic['numero_orden_de_compra'] = ''
         
-        # external_id
-        documento_afectado = {}
-        documento_afectado['external_id'] = venta.external_id
-        header_dic['documento_afectado'] = documento_afectado
-
+        if venta.external_id:            
+            # Con external_id
+            documento_afectado = {}
+            documento_afectado['external_id'] = venta.external_id
+            header_dic['documento_afectado'] = documento_afectado
+        else:        
+            # Sin external_id
+            documento_afectado = {}
+            documento_afectado['serie_documento'] = venta.serie_venta
+            documento_afectado['numero_documento'] = venta.numero_venta
+            documento_afectado['codigo_tipo_documento'] = venta.codigo_tipo_documento
+            header_dic['documento_afectado'] = documento_afectado
+        
         # totales
         datos_totales = {}
         datos_totales['total_exportacion'] = 0
@@ -138,8 +159,8 @@ def _generate_lista(ventas):
 
         # datos del cliente
         datos_del_cliente = {}
-        datos_del_cliente['codigo_tipo_documento_identidad'] = '6'
-        datos_del_cliente['numero_documento'] = venta.documento_cliente
+        datos_del_cliente['codigo_tipo_documento_identidad'] = venta.codigo_tipo_documento_identidad
+        datos_del_cliente['numero_documento'] = venta.documento_cliente #if len(venta.documento_cliente) > 0  else '99999999' 
         datos_del_cliente['apellidos_y_nombres_o_razon_social'] = venta.nombre_cliente
         datos_del_cliente['codigo_pais'] = 'PE'
         datos_del_cliente['ubigeo'] = ''
@@ -161,12 +182,12 @@ def _generate_lista(ventas):
             item['codigo_tipo_precio'] = '01'
             item['precio_unitario'] = deta.precio_producto
             item['codigo_tipo_afectacion_igv'] = '20'
-            item['total_base_igv'] = (deta.cantidad * deta.precio_producto)
+            item['total_base_igv'] = round(deta.cantidad * deta.precio_producto, 3)
             item['porcentaje_igv'] = 18
             item['total_igv'] = 0
             item['total_impuestos'] = 0
-            item['total_valor_item'] = (deta.cantidad * deta.precio_producto)
-            item['total_item'] = (deta.cantidad * deta.precio_producto)
+            item['total_valor_item'] = round(deta.cantidad * deta.precio_producto, 3)
+            item['total_item'] = round(deta.cantidad * deta.precio_producto, 3)
             lista_items.append(item)
 
         header_dic['items'] = lista_items
