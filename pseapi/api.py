@@ -1,4 +1,5 @@
 import requests
+import json
 
 from base.db import ( _get_time,
     read_empresa_pgsql,
@@ -10,6 +11,7 @@ from base.db import ( _get_time,
     update_guia_pgsql,
     update_rechazados_pgsql
 )
+from logger import log
 from urllib3.exceptions import InsecureRequestWarning
 
 # Disable flag warning
@@ -28,23 +30,69 @@ def _send_cpe(url, token, data):
         'Content-Type': 'application/json',
         'Authorization': 'Bearer {}'.format(token)
     }
-    #cont = 0
     for venta in data:
-        #if cont == 0:
-            print(venta)
-            response = requests.post(
-                url, json=venta, headers=header, verify=False)
-            if response.status_code == 200:
-                r_json=response.json()
-                external_id=r_json['data']['external_id']
+        # Manejamos las excepciones
+        try:
+            # Realizamos la llamada al API de envío de documentos
+            res = requests.post(url, json=venta, headers=header)
+            # Obtenemos la respuesta y lo decodificamos
+            data = ObjJSON(res.content.decode("UTF8")).decoder()
+            # Adaptamos la respuesta para guardarlo
+            if res.status_code == 200:
+                external_id=data['data']['external_id']
                 update_venta_pgsql(external_id, int(venta['id_venta']))
-                print(response.content)
+                rest = RespuestaREST(
+                    data['success'],"filename:{};estado:{}".format(data['data']['filename'],
+                    data['data']['state_type_description']), data)
+                log.info(f'{rest.message}')
             else:
-                print(_get_time(1) + ':')
-                print(response.content)
-                print(response.status_code)
-        #cont += 1
+                rest = RespuestaREST(False, data['message'], data)
+                log.error(f'{rest.message}')
+                if (rest.message.find('ya se encuentra registrado') != -1):
+                    update_venta_pgsql('-', int(venta['id_venta']))
+                    
+        except requests.ConnectionError as e:
+            log.warning(e)
+            rest = RespuestaREST(False, "No se puede establecer una conexión")
+            log.warning(f'{rest.message}')
+        except requests.ConnectTimeout as e:
+            log.warning(e)
+            rest = RespuestaREST(False, "Tiempo de espera de conexión agotada")
+            log.warning(f'{rest.message}')
+        except requests.HTTPError as e:
+            log.warning(e)
+            rest = RespuestaREST(False, "Ruta de enlace no encontrada")
+            log.warning(f'{rest.message}')
+        except requests.RequestException as e:
+            log.warning(e)
+            rest = RespuestaREST(False, "No se puede conectar al servicio")
+            log.warning(f'{rest.message}')
+        
+# Clase para controlar el formato de respuesta
+class RespuestaREST:
+    def __init__(self, success, message, data=None, anulado=None):
+        self.__success = success
+        self.message = message
+        self.data = data
 
+    def isSuccess(self):
+        return self.__success
+
+# Clase para el control del tipo de codificación en JSON
+class ObjModelEncoder(json.JSONEncoder):
+    def default(self, obj):
+        return obj.__dict__
+    
+# Clase para la codificación y decodificación de documentos y json
+class ObjJSON:
+    def __init__(self, obj):
+        self.obj = obj
+
+    def encoder(self):
+        return json.dumps(self.obj, cls=ObjModelEncoder, indent=4, ensure_ascii=False)
+
+    def decoder(self):
+        return json.loads(self.obj)
 
 def create_anulados(header_dics, tipo):
     "crea facturas y boletas anuladas"
@@ -180,26 +228,26 @@ def _send_cpe_guia(url, token, data):
                 print(response.content)
                 print(response.status_code)
 
-def create_rechazados(header_dics):
-    convenio = read_empresa_pgsql()
-    url = convenio[1] + "/api/documents"
-    token = convenio[0]
-    _send_cpe_rechazados(url, token, header_dics)
+# def create_rechazados(header_dics):
+#     convenio = read_empresa_pgsql()
+#     url = convenio[1] + "/api/documents"
+#     token = convenio[0]
+#     _send_cpe_rechazados(url, token, header_dics)
 
-def _send_cpe_rechazados(url, token, data):
-    header = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer {}'.format(token)
-    }
-    for rechazados in data:
-            print(rechazados)
-            response = requests.post(
-                url, json=rechazados, headers=header, verify=False)
-            if response.status_code == 200:
-                r_json=response.json()
-                external_id=r_json['data']['external_id']
-                update_rechazados_pgsql(external_id, int(rechazados['id_venta']))
-                print(response.content)
-            else:
-                print(response.content)
-                print(response.status_code)
+# def _send_cpe_rechazados(url, token, data):
+#     header = {
+#         'Content-Type': 'application/json',
+#         'Authorization': 'Bearer {}'.format(token)
+#     }
+#     for rechazados in data:
+#             print(rechazados)
+#             response = requests.post(
+#                 url, json=rechazados, headers=header, verify=False)
+#             if response.status_code == 200:
+#                 r_json=response.json()
+#                 external_id=r_json['data']['external_id']
+#                 update_rechazados_pgsql(external_id, int(rechazados['id_venta']))
+#                 print(response.content)
+#             else:
+#                 print(response.content)
+#                 print(response.status_code)

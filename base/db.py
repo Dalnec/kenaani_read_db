@@ -1,6 +1,7 @@
 import psycopg2
 import configparser
 import time
+from logger import log
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -11,12 +12,9 @@ db_pass = config['BASE']['DB_PASS']
 db_host = config['BASE']['DB_HOST']
 db_port = config['BASE']['DB_PORT']
 
-def _get_time(format):
+def _get_time():
         timenow = time.localtime()
-        if format == 1:
-            timenow = time.strftime("%Y/%m/%d %H:%M:%S", timenow)
-        else:
-            timenow = time.strftime("%H:%M:%S", timenow)
+        timenow = time.strftime("%H:%M:%S", timenow)
         return timenow
 
 def __conectarse():
@@ -26,7 +24,7 @@ def __conectarse():
                             password=db_pass, host=db_host, port=db_port)
         return cnx
     except (Exception, psycopg2.Error) as error:
-        print("Error fetching data from PostgreSQL table", error)
+        log.debug(f'Connection exception {error}')
 
 
 def update_venta_pgsql(ext_id, id):
