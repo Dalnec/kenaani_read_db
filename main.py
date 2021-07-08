@@ -22,11 +22,20 @@ if __name__ == "__main__":
 
     from kulami.models import leer_db_access
     from kulami.models_annulled import leer_db_fanulados, leer_db_banulados
+    from kulami.models_annulled_consulta import leer_db_anulados_consultar
     from kulami.models_notaCredito import leer_db_notaCredito
     from kulami.models_guiaRemision import leer_db_guia
     from kulami.models_rechazados import leer_db_rechazados
     #from kulami.models_resumen import leer_db_resumen, leer_db_consulta
-    from pseapi.api import create_document, create_anulados, create_notaCredito, create_resumen, create_consulta, create_guiaRemision#, create_rechazados
+    from pseapi.api import (
+        create_document, 
+        create_anulados, 
+        create_notaCredito, 
+        create_resumen, 
+        create_consulta, 
+        create_guiaRemision,
+        create_anulados_consultar
+    )
     from backup.postgresql_backup import backup
     from base.db import _get_time
     from logger import log
@@ -42,12 +51,12 @@ if __name__ == "__main__":
             time.sleep(2)
 
         try:
-            # if state_anul:                
-            lista_rechazados = leer_db_rechazados()
-            create_document(lista_rechazados)
-            time.sleep(1)
+            if state_anul:               
+                lista_rechazados = leer_db_rechazados()
+                create_document(lista_rechazados, 'R')
+                time.sleep(1)
         except Exception as e:
-            log.error(f'Anulados Rechazados {e}')
+            log.error(f'Anulados Rechazados: {e}')
             time.sleep(2)
 
         try:
@@ -56,7 +65,7 @@ if __name__ == "__main__":
                 create_anulados(lista_anulados, 1)
                 time.sleep(1)
         except Exception as e:
-            log.error(f'Anulados Facturas {e}')
+            log.error(f'Anulados Facturas: {e}')
             time.sleep(2)
 
         try:
@@ -65,7 +74,16 @@ if __name__ == "__main__":
                 create_anulados(lista_anulados, 3)
                 time.sleep(1)
         except Exception as e:
-            log.error(f'Anulados Boletas {e}')
+            log.error(f'Anulados Boletas: {e}')
+            time.sleep(2)
+            
+        try:
+            if state_anul:                
+                lista_anulados_consultar = leer_db_anulados_consultar()
+                create_anulados_consultar(lista_anulados_consultar)
+                time.sleep(1)
+        except Exception as e:
+            log.error(f'Anulados Consulta: {e}')
             time.sleep(2)
 
         time_now = _get_time()
@@ -74,7 +92,7 @@ if __name__ == "__main__":
                 lista_notaCredito = leer_db_notaCredito()
                 create_notaCredito(lista_notaCredito)
             except Exception as e:
-                log.error(f'Notas Creditos {e}')
+                log.error(f'Notas Creditos: {e}')
                 time.sleep(2)
 
         try:
@@ -82,7 +100,7 @@ if __name__ == "__main__":
                 lista_guia = leer_db_guia()
                 create_guiaRemision(lista_guia)
         except Exception as e:
-            log.error(f'Guia de Remision {e}')
+            log.error(f'Guia de Remision: {e}')
             time.sleep(2)
 
         time_now = _get_time()
@@ -91,7 +109,7 @@ if __name__ == "__main__":
                 backup()
                 time.sleep(1)
             except Exception as e:
-                log.error(f'Backups {e}') 
+                log.error(f'Backups: {e}') 
                 time.sleep(1)
 
         # if time_string == time_doc:
