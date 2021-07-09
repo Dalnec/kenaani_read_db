@@ -27,12 +27,12 @@ def __conectarse():
         log.debug(f'Connection exception {error}')
 
 
-def update_venta_pgsql(ext_id, id):
+def update_venta_pgsql(ext_id, id, estado):
     try:
         cnx = __conectarse()
         cursor = cnx.cursor()
         cursor.execute(
-            "UPDATE comercial.ventas SET observaciones_declaracion = %s, estado_declaracion='PROCESADO' WHERE id_venta = %s", (ext_id, id))
+            "UPDATE comercial.ventas SET observaciones_declaracion = %s, estado_declaracion=%s WHERE id_venta = %s", (ext_id, estado, id))
         cnx.commit() #Guarda los cambios en la bd
     finally:
         # closing database connection
@@ -99,6 +99,40 @@ def update_guia_pgsql(ext_id, id):
         cursor = cnx.cursor()
         cursor.execute(
             "UPDATE comercial.guia SET razonsocial = %s WHERE id_guia = %s", (ext_id, id))
+        cnx.commit()
+    finally:
+        # closing database connection
+        if (cnx):
+            cursor.close()
+            cnx.close()
+
+def get_date_por_resumen_pgsql():
+    try:
+        datenow = time.localtime()
+        datenow = time.strftime("%Y-%m-%d", datenow)
+        cnx = __conectarse()
+        cursor = cnx.cursor()
+        consulta = """ SELECT fecha_hora 
+                    FROM comercial.ventas 
+                    WHERE estado_declaracion = 'POR RESUMIR' 
+                    AND fecha_hora < '{}'
+                    ORDER BY fecha_hora 
+                    DESC LIMIT 1 """
+        cursor.execute(consulta.format(datenow))
+        date_resumen = cursor.fetchone()
+        return date_resumen
+    finally:
+        # closing database connection
+        if (cnx):
+            cursor.close()
+            cnx.close()
+
+def update_resumen_pgsql(ext_id, id, estado):
+    try:
+        cnx = __conectarse()
+        cursor = cnx.cursor()
+        cursor.execute(
+            "UPDATE comercial.ventas SET estado_declaracion_anulado = %s, estado_declaracion = %s WHERE id_venta = %s", (ext_id, estado, id))
         cnx.commit()
     finally:
         # closing database connection

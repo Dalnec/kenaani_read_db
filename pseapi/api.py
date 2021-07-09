@@ -7,7 +7,8 @@ from base.db import ( _get_time,
     update_anulados_pgsql,
     update_notaCredito_pgsql,
     update_guia_pgsql,
-    update_rechazados_pgsql
+    update_rechazados_pgsql,
+    update_resumen_pgsql
 )
 from logger import log
 from urllib3.exceptions import InsecureRequestWarning
@@ -41,7 +42,10 @@ def _send_cpe(url, token, data, estado):
                 if estado == 'R': # Es rechazado?
                     update_rechazados_pgsql(external_id, int(venta['id_venta']))
                 else:
-                    update_venta_pgsql(external_id, int(venta['id_venta']))
+                    if venta['codigo_tipo_documento'] == '01' :                        
+                        update_venta_pgsql(external_id, int(venta['id_venta']), 'PROCESADO')
+                    else:
+                        update_venta_pgsql(external_id, int(venta['id_venta']), 'POR RESUMIR')
                 
                 rest = RespuestaREST(
                     data['success'],"filename:{};estado:{}".format(data['data']['filename'],
@@ -220,6 +224,51 @@ def _send_cpe_notaCredito(url, token, data):
             rest = RespuestaREST(False, "No se puede conectar al servicio")
             log.warning(f'{rest.message}')
 
+def create_resumen(formato, lista_resumen):
+    convenio = read_empresa_pgsql()
+    url = convenio[1] + "/api/summaries"
+    token = convenio[0]
+    _send_cpe_resumen(url, token, formato, lista_resumen)
+
+def _send_cpe_resumen(url, token, formato, lista_resumen):
+    header = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer {}'.format(token)
+    }
+
+    try:
+        print(lista_resumen)
+        print(type(lista_resumen))
+        res = requests.post(url, json=formato, headers=header)
+        data = ObjJSON(res.content.decode("UTF8")).decoder()
+        
+        if res.status_code == 200:
+            external_id="{}".format(data['data'])
+            for venta in lista_resumen:
+                update_resumen_pgsql(external_id, int(venta[0]), 'PROCESADO')
+                
+            rest = RespuestaREST(data['success'], "Resumen Enviado ticket:{}".format(data['data']['ticket']), data)
+            log.info(f'{rest.message}')
+        else:
+            rest = RespuestaREST(False, data['message'], data)
+            log.error(f'{rest.message}')
+            
+    except requests.ConnectionError as e:
+        log.warning(e)
+        rest = RespuestaREST(False, "No se puede establecer una conexión")
+        log.warning(f'{rest.message}')
+    except requests.ConnectTimeout as e:
+        log.warning(e)
+        rest = RespuestaREST(False, "Tiempo de espera de conexión agotada")
+        log.warning(f'{rest.message}')
+    except requests.HTTPError as e:
+        log.warning(e)
+        rest = RespuestaREST(False, "Ruta de enlace no encontrada")
+        log.warning(f'{rest.message}')
+    except requests.RequestException as e:
+        log.warning(e)
+        rest = RespuestaREST(False, "No se puede conectar al servicio")
+        log.warning(f'{rest.message}')
 
 # Clase para controlar el formato de respuesta
 class RespuestaREST:
@@ -247,29 +296,6 @@ class ObjJSON:
     def decoder(self):
         return json.loads(self.obj)
 
-
-def create_resumen(header_dics, tipo):
-    convenio = read_empresa_pgsql()
-    url = convenio[1] + "/api/summaries"
-    token = convenio[0]
-    _send_cpe_resumen(url, token, header_dics, tipo)
-
-def _send_cpe_resumen(url, token, data, tipo):
-    header = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer {}'.format(token)
-    }
-    for resumen in data:
-            response = requests.post(
-                url, json=resumen, headers=header, verify=False)
-            if response.status_code == 200:
-                r_json=response.json()
-                external_id = r_json['data']['external_id']
-                ticket = r_json['data']['ticket']
-                
-                print(response.content)
-            else:
-                print(response.status_code)
 
 def create_consulta(header_dics):
     convenio = read_empresa_pgsql()

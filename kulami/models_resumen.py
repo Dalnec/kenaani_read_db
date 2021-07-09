@@ -1,6 +1,6 @@
 import pyodbc
 import psycopg2
-from base.db import __conectarse, read_resumen_pgsql
+from base.db import __conectarse, get_date_por_resumen_pgsql
 import time
 
 def _ver_documentos(dia):
@@ -15,53 +15,37 @@ def _ver_documentos(dia):
                 T.id_tipodocumento                
             FROM comercial.ventas AS V, comercial.tipodocumento AS T
             WHERE T.id_tipodocumento = V.id_tipodocumento 
-                AND V.estado_declaracion='PROCESADO'
+                AND V.estado_declaracion='POR RESUMIR'
                 AND V.observaciones_declaracion != '' 
-                AND T.id_tipodocumento = 25 
-                AND (V.fecha_hora >= '{} 00:00:00') AND (V.fecha_hora <= '{} 23:59:00')
-            ORDER BY V.fecha_hora
+                AND T.id_tipodocumento = 25
+                AND (V.fecha_hora >= '{} 00:00:00') AND (V.fecha_hora <= '{} 23:59:00') --fecha obtenida
+            ORDER BY V.fecha_hora;
         """
     cursor.execute(sql_header.format(dia, dia))
-    estado = cursor.fetchone()
+    lista = cursor.fetchall()
     cursor.close()
     cnx.close()
-    return estado
+    return lista
 
-def leer_db_resumen():    
-    est_resumen = read_resumen_pgsql()
-    estado_resumen = est_resumen[0].strftime('%Y-%m-%d')
-    estado_resumen = time.strptime(estado_resumen, '%Y-%m-%d') 
-    estado_resumen = time.mktime(estado_resumen) + 86400
-    estado_resumen = time.localtime(estado_resumen) 
-    estado_resumen = time.strftime("%Y-%m-%d", estado_resumen)
-    antesdeayer = time.localtime(time.time() - 259200) #menos 3 dias
-    antesdeayer = time.strftime("%Y-%m-%d", antesdeayer)
-    last_resumen = ''
-    while (estado_resumen <= antesdeayer):
-        estado = _ver_documentos(estado_resumen)
-        if not (estado is None):
-            last_resumen = estado[1].strftime('%Y-%m-%d')
-            break
-        estado_resumen = time.strptime(estado_resumen, '%Y-%m-%d')
-        estado_resumen = time.mktime(estado_resumen) + 86400 # Convierte a segundos  + un dia (86400)
-        estado_resumen = time.localtime(estado_resumen) 
-        estado_resumen = time.strftime("%Y-%m-%d", estado_resumen)
-    
-    return _generate_lista(last_resumen)
-    
-    
+def leer_db_resumen():
+    # obtiene la fecha de una boleta por resumir    
+    date_resumen = get_date_por_resumen_pgsql()
+    print(date_resumen)
+    if date_resumen:
+        # damos formato a fecha obtenida y obtenemos la lista
+        # de la fecha obtenida.
+        date_resumen = date_resumen[0].strftime('%Y-%m-%d')        
+        lista_boletas = _ver_documentos(date_resumen)
+        # retornamos formato json y lista de boletas
+        return _generate_formato(date_resumen), lista_boletas
+    else:
+        return [], []
 
-def _generate_lista(last_resumen):
-
-    header_dics = []
-    header_dic = {}
-    #if not (last_resumen is ''):
-    if (last_resumen != ''):            
-        header_dic['fecha_de_emision_de_documentos'] = last_resumen
-        header_dic['codigo_tipo_proceso'] = '1'
-        header_dics.append(header_dic)
-
-    return header_dics
+def _generate_formato(date_resumen):
+    header_dic = {}         
+    header_dic['fecha_de_emision_de_documentos'] = date_resumen
+    header_dic['codigo_tipo_proceso'] = '1'
+    return header_dic
 
 def leer_db_consulta():
     cnx = __conectarse()

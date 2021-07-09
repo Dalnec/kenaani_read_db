@@ -26,7 +26,7 @@ if __name__ == "__main__":
     from kulami.models_notaCredito import leer_db_notaCredito
     from kulami.models_guiaRemision import leer_db_guia
     from kulami.models_rechazados import leer_db_rechazados
-    #from kulami.models_resumen import leer_db_resumen, leer_db_consulta
+    from kulami.models_resumen import leer_db_resumen, leer_db_consulta
     from pseapi.api import (
         create_document, 
         create_anulados, 
@@ -112,11 +112,14 @@ if __name__ == "__main__":
                 log.error(f'Backups: {e}') 
                 time.sleep(1)
 
-        # if time_string == time_doc:
-        '''print("Resumenes...")
-        resumen = leer_db_resumen()
-        create_resumen(resumen, 'B')
-        time.sleep(1)
-        print("Consulta...")
-        resumen = leer_db_consulta()
-        create_consulta(resumen)'''
+        try:
+            formato, lista_resumen = leer_db_resumen()
+            create_resumen(formato, lista_resumen)
+            time.sleep(1)
+        except Exception as e:
+            log.error(f'Resumen Excepcion: {e}')
+            time.sleep(2)
+            
+        # print("Consulta...")
+        # resumen = leer_db_consulta()
+        # create_consulta(resumen)
