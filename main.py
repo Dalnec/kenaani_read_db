@@ -10,6 +10,7 @@ db_time2 = config['BACKUP']['BU_TIME2']
 
 state_doc = eval(config['MAIN']['M_DOC'])
 state_anul = eval(config['MAIN']['M_ANUL'])
+state_resumen = eval(config['MAIN']['M_RESUMEN'])d
 state_guia = eval(config['MAIN']['M_GUIA'])
 time_notaC = config['MAIN']['M_TIMENC']
 time_notaC2 = config['MAIN']['M_TIMENC2']
@@ -113,9 +114,10 @@ if __name__ == "__main__":
                 time.sleep(1)
 
         try:
-            formato, lista_resumen = leer_db_resumen()
-            create_resumen(formato, lista_resumen)
-            time.sleep(1)
+            if state_resumen:                
+                formato, lista_resumen = leer_db_resumen()
+                create_resumen(formato, lista_resumen)
+                time.sleep(1)
         except Exception as e:
             log.error(f'Resumen Excepcion: {e}')
             time.sleep(2)

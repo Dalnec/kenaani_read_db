@@ -101,7 +101,7 @@ def _send_cpe_anulados(url, token, data):
                 # external_id="{}?{}".format(data['data']['external_id'], data['data']['ticket'])
                 external_id="{}".format(data['data'])
                 update_anulados_pgsql(external_id, int(venta['id_venta']), 'POR CONSULTAR')
-                rest = RespuestaREST(data['success'], "ticket:{}".format(data['data']['ticket']), data)
+                rest = RespuestaREST(data['success'], "ticket:{} {}".format(data['data']['ticket'], venta['fecha_de_emision_de_documentos']), data)
                 log.info(f'{rest.message}')
             else:
                 rest = RespuestaREST(False, data['message'], data)
@@ -237,21 +237,20 @@ def _send_cpe_resumen(url, token, formato, lista_resumen):
     }
 
     try:
-        print(lista_resumen)
-        print(type(lista_resumen))
-        res = requests.post(url, json=formato, headers=header)
-        data = ObjJSON(res.content.decode("UTF8")).decoder()
-        
-        if res.status_code == 200:
-            external_id="{}".format(data['data'])
-            for venta in lista_resumen:
-                update_resumen_pgsql(external_id, int(venta[0]), 'PROCESADO')
-                
-            rest = RespuestaREST(data['success'], "Resumen Enviado ticket:{}".format(data['data']['ticket']), data)
-            log.info(f'{rest.message}')
-        else:
-            rest = RespuestaREST(False, data['message'], data)
-            log.error(f'{rest.message}')
+        if lista_resumen:
+            res = requests.post(url, json=formato, headers=header)
+            data = ObjJSON(res.content.decode("UTF8")).decoder()
+            
+            if res.status_code == 200:
+                external_id="{}".format(data['data'])
+                for venta in lista_resumen:
+                    update_resumen_pgsql(external_id, int(venta[0]), 'PROCESADO')
+                    
+                rest = RespuestaREST(data['success'], "Resumen Enviado ticket:{} {}".format(data['data']['ticket'], formato['fecha_de_emision_de_documentos']), data)
+                log.info(f'{rest.message}')
+            else:
+                rest = RespuestaREST(False, data['message'], data)
+                log.error(f'{rest.message}')
             
     except requests.ConnectionError as e:
         log.warning(e)
@@ -319,10 +318,6 @@ def _send_cpe_consulta(url, token, data):
                 print(response.content)
             else:
                 print(response.status_code)
-
-
-
-
 
 
 def create_guiaRemision(header_dics):

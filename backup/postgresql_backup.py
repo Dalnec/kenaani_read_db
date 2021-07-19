@@ -6,6 +6,7 @@ import time
 import shutil
 import os
 from backup.send_drive import searchFile
+from logger import log
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -24,14 +25,14 @@ def backup():
         lastdate_modified = time.localtime(os.path.getmtime(file_name))
         lastdate_modified = time.strftime("%Y-%m-%d", lastdate_modified)
         if today == lastdate_modified:
-            print('Backup already done')
+            log.info('Backup already done')
         else:
             _create_file()          
     else:        
         _create_file()
 
 def _create_file():
-    print('Backup...')
+    log.info('Backup...')
     cmd ='pg_dump -d '+ db_name +' -p 5432 -U comercial -F t -f '+ file_name
     with gzip.open(file_name, 'wb') as f:
         popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)    

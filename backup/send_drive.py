@@ -7,7 +7,7 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.http import MediaFileUpload
-from base.db import _get_time
+from logger import log
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/drive'] #.metadata.readonly']
@@ -27,7 +27,7 @@ def getCredentials():
         with open('token.pickle', 'wb') as token:
             pickle.dump(creds, token)
 
-    service = build('drive', 'v3', credentials=creds)
+    service = build('drive', 'v3', credentials=creds, cache_discovery=False)
     return service
 
 def list_items():
@@ -37,15 +37,15 @@ def list_items():
     items = results.get('files', [])
 
     if not items:
-        print('No files found.')
+        log.info('No files found.')
     else:
-        print('Files:')
+        log.info('Files:')
         for item in items:
-            print(u'{0} ({1})'.format(item['name'], item['id']))
+            log.info(u'{0} ({1})'.format(item['name'], item['id']))
 
 def uploadFile(filename,filepath,mimetype):
     services = getCredentials()
-    print('Backup Uploading...')
+    log.info('Backup Uploading...')
     file_metadata = {'name': filename}
     media = MediaFileUpload(filepath, 
                             mimetype = mimetype, 
@@ -53,18 +53,18 @@ def uploadFile(filename,filepath,mimetype):
     file = services.files().create(body = file_metadata,
                                     media_body = media,
                                     fields='id').execute()
-    return print('%s Uploaded: %s' % (_get_time(1), file.get('id')))
+    return log.info('Uploaded: %s' % (file.get('id')))
 
 def searchFile(size, query, filename):
     services = getCredentials()
-    print('Searching File...')
+    log.info('Searching File...')
     f_mT = 'application/x-rar-compressed'
     results = services.files().list(pageSize = size,
                                     fields = "nextPageToken, files(id)",
                                     q=query).execute()
     items = results.get('files', [])
     if not items:
-        print('No files found.')        
+        log.info('No files found.')        
         uploadFile(filename, filename, f_mT)
     else:
         for item in items:            
@@ -74,7 +74,7 @@ def searchFile(size, query, filename):
     
 def updateFile(file_id, new_filename, new_mime_type):
     services = getCredentials()
-    print('Backup Updating...')
+    log.info('Backup Updating...')
     try:
         file = {}
         media_body = MediaFileUpload(new_filename, 
@@ -83,7 +83,7 @@ def updateFile(file_id, new_filename, new_mime_type):
         updated_file = services.files().update(fileId=file_id,                                           
                                             body=file,
                                             media_body=media_body).execute()
-        return print('%s Updated: %s' % (_get_time(1), updated_file['id']))
+        return log.info('Updated: %s' % (updated_file['id']))
     except errors.HttpError as error:
-        print ('%s An error occurred: %s' % (_get_time(1), error)) 
+        log.error('%s An error occurred: %s' % (error)) 
         return None

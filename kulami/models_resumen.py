@@ -17,7 +17,7 @@ def _ver_documentos(dia):
             WHERE T.id_tipodocumento = V.id_tipodocumento 
                 AND V.estado_declaracion='POR RESUMIR'
                 AND V.observaciones_declaracion != '' 
-                AND T.id_tipodocumento = 25
+                AND T.codigo_sunat = '03'
                 AND (V.fecha_hora >= '{} 00:00:00') AND (V.fecha_hora <= '{} 23:59:00') --fecha obtenida
             ORDER BY V.fecha_hora;
         """
@@ -30,7 +30,6 @@ def _ver_documentos(dia):
 def leer_db_resumen():
     # obtiene la fecha de una boleta por resumir    
     date_resumen = get_date_por_resumen_pgsql()
-    print(date_resumen)
     if date_resumen:
         # damos formato a fecha obtenida y obtenemos la lista
         # de la fecha obtenida.
@@ -50,15 +49,7 @@ def _generate_formato(date_resumen):
 def leer_db_consulta():
     cnx = __conectarse()
     cursor = cnx.cursor()
-
-    #antesdeayer = time.localtime(time.time()) #- 518400)
-    #antesdeayer = time.strftime("%Y-%m-%d", antesdeayer)
-
-    #sql_header = """
-    #        SELECT R.id_resumen, R.ticket, R.ext_id_resumen
-    #        FROM comercial.resumen AS R
-    #        WHERE fecha_hora = '{}'
-    #    """
+    
     sql_header = """SELECT id_resumen, ticket, ext_id_resumen 
                     FROM comercial.resumen WHERE filename = '' AND ticket != '' 
                     ORDER BY fecha_hora DESC LIMIT 1"""

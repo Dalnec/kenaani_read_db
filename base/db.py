@@ -19,7 +19,6 @@ def _get_time():
 
 def __conectarse():
     try:
-        # nos conectamos a la bd del cafae
         cnx = psycopg2.connect(database=db_name, user=db_user,
                             password=db_pass, host=db_host, port=db_port)
         return cnx
