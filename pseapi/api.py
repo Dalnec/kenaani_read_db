@@ -30,7 +30,7 @@ def _send_cpe(url, token, data, estado):
         'Authorization': 'Bearer {}'.format(token)
     }
     for venta in data:
-        print(venta)
+        # print(venta)
         # Manejamos las excepciones
         try:
             # Realizamos la llamada al API de envío de documentos
@@ -252,6 +252,9 @@ def _send_cpe_resumen(url, token, formato, lista_resumen):
             else:
                 rest = RespuestaREST(False, data['message'], data)
                 log.error(f'{rest.message}')
+                if (rest.message.find('No se encontraron documentos con fecha de emisión') != -1):
+                    for venta in lista_resumen:
+                        update_resumen_pgsql('-', int(venta[0]), 'PROCESADO')
             
     except requests.ConnectionError as e:
         log.warning(e)
