@@ -10,7 +10,7 @@ db_time2 = config['BACKUP']['BU_TIME2']
 
 state_doc = eval(config['MAIN']['M_DOC'])
 state_anul = eval(config['MAIN']['M_ANUL'])
-state_resumen = eval(config['MAIN']['M_RESUMEN'])d
+state_resumen = eval(config['MAIN']['M_RESUMEN'])
 state_guia = eval(config['MAIN']['M_GUIA'])
 time_notaC = config['MAIN']['M_TIMENC']
 time_notaC2 = config['MAIN']['M_TIMENC2']

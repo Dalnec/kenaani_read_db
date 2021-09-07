@@ -1,4 +1,4 @@
-import pyodbc
+# import pyodbc
 import psycopg2
 from base.db import __conectarse, read_empresa_pgsql
 import configparser

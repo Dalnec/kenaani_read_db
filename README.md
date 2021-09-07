@@ -11,6 +11,7 @@ venv/Scripts/Activate.ps1  #para powershell
 
 ```
 pip install -r requirements.txt
+pip freeze > requirements.txt
 ```
 
 # Actualizar pip

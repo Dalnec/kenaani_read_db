@@ -30,6 +30,7 @@ def _send_cpe(url, token, data, estado):
         'Authorization': 'Bearer {}'.format(token)
     }
     for venta in data:
+        print(venta)
         # Manejamos las excepciones
         try:
             # Realizamos la llamada al API de envío de documentos
@@ -55,7 +56,7 @@ def _send_cpe(url, token, data, estado):
                 rest = RespuestaREST(False, data['message'], data)
                 log.error(f'{rest.message}')
                 if (rest.message.find('ya se encuentra registrado') != -1):
-                    update_venta_pgsql('-', int(venta['id_venta']))
+                    update_venta_pgsql('-', int(venta['id_venta']),  'PROCESADO')
                     
         except requests.ConnectionError as e:
             log.warning(e)

@@ -8,7 +8,7 @@ added_files = [( 'kulami/*.*', 'kulami' ),
          ]
 
 a = Analysis(['main.py'],
-             pathex=['D:\\TSI_Python\\kenaani_read_db'],
+             pathex=['D:\\TSI\\Faqture_Code\\kenaani_read_db'],
              binaries=[],
              datas=added_files,
              hiddenimports=['google-api-python-client'],
