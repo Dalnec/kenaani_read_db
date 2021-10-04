@@ -28,15 +28,7 @@ if __name__ == "__main__":
     from kulami.models_guiaRemision import leer_db_guia
     from kulami.models_rechazados import leer_db_rechazados
     from kulami.models_resumen import leer_db_resumen, leer_db_consulta
-    from pseapi.api import (
-        create_document, 
-        create_anulados, 
-        create_notaCredito, 
-        create_resumen, 
-        create_consulta, 
-        create_guiaRemision,
-        create_anulados_consultar
-    )
+    from pseapi.api import ( create_document, create_anulados, create_notaCredito, create_resumen, create_consulta, create_guiaRemision, create_anulados_consultar )
     from backup.postgresql_backup import backup
     from base.db import _get_time
     from logger import log
@@ -77,7 +69,7 @@ if __name__ == "__main__":
         except Exception as e:
             log.error(f'Anulados Boletas: {e}')
             time.sleep(2)
-            
+
         try:
             if state_anul:                
                 lista_anulados_consultar = leer_db_anulados_consultar()
@@ -121,7 +113,12 @@ if __name__ == "__main__":
         except Exception as e:
             log.error(f'Resumen Excepcion: {e}')
             time.sleep(2)
-            
-        # print("Consulta...")
-        # resumen = leer_db_consulta()
-        # create_consulta(resumen)
+
+        try:
+            if state_resumen:
+                formato, lista_consultar = leer_db_consulta()
+                create_consulta(formato, lista_consultar)
+                time.sleep(1)
+        except Exception as e:
+            log.error(f'Consulta Excepcion: {e}')
+            time.sleep(2)

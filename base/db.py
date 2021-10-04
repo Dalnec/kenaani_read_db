@@ -19,26 +19,23 @@ def _get_time():
 
 def __conectarse():
     try:
-        cnx = psycopg2.connect(database=db_name, user=db_user,
-                            password=db_pass, host=db_host, port=db_port)
+        cnx = psycopg2.connect(database=db_name, user=db_user, password=db_pass, host=db_host, port=db_port)
         return cnx
     except (Exception, psycopg2.Error) as error:
         log.debug(f'Connection exception {error}')
 
 
-def update_venta_pgsql(ext_id, id, estado):
+def update_venta_pgsql(estado, ext_id, id):
     try:
         cnx = __conectarse()
         cursor = cnx.cursor()
-        cursor.execute(
-            "UPDATE comercial.ventas SET observaciones_declaracion = %s, estado_declaracion=%s WHERE id_venta = %s", (ext_id, estado, id))
+        cursor.execute( "UPDATE comercial.ventas SET estado_declaracion = %s, external_id = %s WHERE id_venta = %s", (estado, ext_id, id))
         cnx.commit() #Guarda los cambios en la bd
     finally:
         # closing database connection
         if (cnx):
             cursor.close()
             cnx.close()
-
 
 def read_empresa_pgsql():
     try:
@@ -53,12 +50,11 @@ def read_empresa_pgsql():
             cursor.close()
             cnx.close()
 
-def update_anulados_pgsql(ext_id, id, estado):
+def update_anulados_pgsql(estado, estado_anulado, ext_id, id):
     try:
         cnx = __conectarse()
         cursor = cnx.cursor()
-        cursor.execute(
-            "UPDATE comercial.ventas SET observaciones_declaracion = %s, estado_declaracion_anulado=%s WHERE id_venta = %s", (ext_id, estado, id))
+        cursor.execute( "UPDATE comercial.ventas SET estado_declaracion = %s, estado_declaracion_anulado=%s, observaciones_declaracion = %s WHERE id_venta = %s", (estado, estado_anulado, ext_id, id))
         cnx.commit()
     finally:
         # closing database connection
@@ -66,12 +62,11 @@ def update_anulados_pgsql(ext_id, id, estado):
             cursor.close()
             cnx.close()
 
-def update_rechazados_pgsql(ext_id, id):
+def update_rechazados_pgsql(estado, ext_id, id):
     try:
         cnx = __conectarse()
         cursor = cnx.cursor()
-        cursor.execute(
-            "UPDATE comercial.ventas SET observaciones_declaracion = %s WHERE id_venta = %s", (ext_id, id))
+        cursor.execute( "UPDATE comercial.ventas SET estado_declaracion = %s, estado_declaracion_anulado=%s WHERE id_venta = %s", (estado, ext_id, id))
         cnx.commit()
     finally:
         # closing database connection
@@ -83,8 +78,7 @@ def update_notaCredito_pgsql(ext_id, id):
     try:
         cnx = __conectarse()
         cursor = cnx.cursor()
-        cursor.execute(
-            "UPDATE comercial.notas_credito_debito SET observaciones_declaracion = %s, estado_declaracion='PROCESADO' WHERE id_notas_credito_debito = %s", (ext_id, id))
+        cursor.execute( "UPDATE comercial.notas_credito_debito SET observaciones_declaracion = %s, estado_declaracion='PROCESADO' WHERE id_notas_credito_debito = %s", (ext_id, id))
         cnx.commit()
     finally:
         # closing database connection
@@ -96,8 +90,7 @@ def update_guia_pgsql(ext_id, id):
     try:
         cnx = __conectarse()
         cursor = cnx.cursor()
-        cursor.execute(
-            "UPDATE comercial.guia SET razonsocial = %s WHERE id_guia = %s", (ext_id, id))
+        cursor.execute( "UPDATE comercial.guia SET razonsocial = %s WHERE id_guia = %s", (ext_id, id))
         cnx.commit()
     finally:
         # closing database connection
@@ -111,12 +104,7 @@ def get_date_por_resumen_pgsql():
         datenow = time.strftime("%Y-%m-%d", datenow)
         cnx = __conectarse()
         cursor = cnx.cursor()
-        consulta = """ SELECT fecha_hora 
-                    FROM comercial.ventas 
-                    WHERE estado_declaracion = 'POR RESUMIR' 
-                    AND fecha_hora < '{}'
-                    ORDER BY fecha_hora 
-                    DESC LIMIT 1 """
+        consulta = """ SELECT fecha_hora FROM comercial.ventas WHERE estado_declaracion in ('POR RESUMIR' , 'ANULADO POR RESUMIR') AND fecha_hora < '{}' ORDER BY fecha_hora LIMIT 1 """
         cursor.execute(consulta.format(datenow))
         date_resumen = cursor.fetchone()
         return date_resumen
@@ -126,12 +114,35 @@ def get_date_por_resumen_pgsql():
             cursor.close()
             cnx.close()
 
-def update_resumen_pgsql(ext_id, id, estado):
+def update_resumen_pgsql(estado, ext_id, id):
     try:
         cnx = __conectarse()
         cursor = cnx.cursor()
-        cursor.execute(
-            "UPDATE comercial.ventas SET estado_declaracion_anulado = %s, estado_declaracion = %s WHERE id_venta = %s", (ext_id, estado, id))
+        cursor.execute( "UPDATE comercial.ventas SET estado_declaracion = %s, observaciones_declaracion = %s WHERE id_venta = %s", (estado, ext_id, id))
+        cnx.commit()
+    finally:
+        # closing database connection
+        if (cnx):
+            cursor.close()
+            cnx.close()
+
+def get_resumen_por_consultar_pgsql():
+    try:
+        cnx = __conectarse()
+        cursor = cnx.cursor()
+        cursor.execute("SELECT id_venta, observaciones_declaracion FROM comercial.ventas WHERE estado_declaracion = 'POR CONSULTAR' OR estado_declaracion = 'ANULADO POR RESUMIR' ORDER BY fecha_hora LIMIT 1")
+        return cursor.fetchone()
+    finally:
+        # closing database connection
+        if (cnx):
+            cursor.close()
+            cnx.close()
+
+def update_consultar_pgsql(estado, ext_id, id):
+    try:
+        cnx = __conectarse()
+        cursor = cnx.cursor()
+        cursor.execute( "UPDATE comercial.ventas SET estado_declaracion = %s, observaciones_declaracion = %s WHERE id_venta = %s", (estado, ext_id, id))
         cnx.commit()
     finally:
         # closing database connection

@@ -8,6 +8,8 @@ class Venta:
     codigo_tipo_proceso = None
     external_id = None
     motivo_anulacion = None
+    serie = None
+    numero = None
 
     def __str__(self):
         return "{}, {}".format(self.fecha_venta, self.codigo_tipo_proceso)
@@ -24,7 +26,10 @@ def leer_db_fanulados():
                 tipodocumento.codigo_sunat,              
                 ventas.observaciones_declaracion,
                 ventas.motivo_anulacion,
-                ventas.codigo_cliente
+                ventas.codigo_cliente,
+                ventas.external_id,
+                ventas.num_serie,
+                ventas.num_documento
             FROM
                 comercial.ventas,
                 comercial. tipodocumento
@@ -32,10 +37,9 @@ def leer_db_fanulados():
                 ventas.id_tipodocumento = tipodocumento.id_tipodocumento AND
                 ventas.estado_declaracion_anulado = 'PENDIENTE' AND
                 ventas.codigo_cliente = 'ANULADO' AND
-                ventas.estado_declaracion = 'ANULADO' AND
+                ventas.estado_declaracion = 'ANULADO PENDIENTE' AND
                 tipodocumento.codigo_sunat = '01' AND
-                ventas.fecha_hora > '2020-01-01' AND
-                ventas.observaciones_declaracion != ''                
+                ventas.external_id != ''                
             ORDER BY ventas.fecha_hora
         """   
     cursor.execute(sql_header)
@@ -46,8 +50,10 @@ def leer_db_fanulados():
         venta.id_venta = row[0]
         venta.fecha_venta = row[1]
         venta.codigo_tipo_proceso = row[2]
-        venta.external_id = row[3]
+        venta.external_id = row[6]
         venta.motivo_anulacion = row[4]
+        venta.serie = row[7]
+        venta.numero = row[8]
 
         lista_ventas_anulados.append(venta)
     
@@ -65,19 +71,21 @@ def leer_db_banulados():
                 ventas.id_venta,
                 ventas.fecha_hora,
                 tipodocumento.codigo_sunat,              
-                ventas.observaciones_declaracion,
+                ventas.estado_declaracion_anulado,
                 ventas.motivo_anulacion,
-                ventas.codigo_cliente
+                ventas.codigo_cliente,
+                ventas.external_id,
+                ventas.num_serie,
+                ventas.num_documento
             FROM
                 comercial.ventas,
                 comercial. tipodocumento
             WHERE
                 ventas.id_tipodocumento = tipodocumento.id_tipodocumento AND
-                ventas.estado_declaracion_anulado = 'PENDIENTE' AND
                 ventas.codigo_cliente = 'ANULADO' AND
-                ventas.estado_declaracion = 'ANULADO' AND
+                ventas.estado_declaracion_anulado = 'PENDIENTE' AND
+                ventas.estado_declaracion = 'POR ANULAR' AND
                 tipodocumento.codigo_sunat = '03' AND
-                ventas.fecha_hora > '2020-01-01' AND
                 ventas.observaciones_declaracion != ''
             ORDER BY ventas.fecha_hora
         """   
@@ -89,8 +97,10 @@ def leer_db_banulados():
         venta.id_venta = row[0]
         venta.fecha_venta = row[1]
         venta.codigo_tipo_proceso = row[2]
-        venta.external_id = row[3]
+        venta.external_id = row[6]
         venta.motivo_anulacion = row[4]
+        venta.serie = row[7]
+        venta.numero = row[8]
 
         lista_ventas_anulados.append(venta)
     
@@ -104,6 +114,7 @@ def _generate_lista_anulados(ventas_anulados):
     for venta in ventas_anulados:
         header_dic = {}
         header_dic['id_venta'] = int(venta.id_venta)
+        header_dic['documento'] = "{}-{}".format(venta.serie, venta.numero)
         # Creamos el cuerpo del pse
         header_dic['fecha_de_emision_de_documentos'] = venta.fecha_venta.strftime('%Y-%m-%d')
         if int(venta.codigo_tipo_proceso) == 3:

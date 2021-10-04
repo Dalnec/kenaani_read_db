@@ -76,7 +76,8 @@ def leer_db_access():
             MP.descripcion as forma_pago,--11
             V.id_puntodeventa,--12
             V.descuento,--13
-            V.igv --14
+            V.igv, --14
+            V.id_tipopago --15
         FROM comercial.ventas V
             INNER JOIN comercial.tipodocumento TD ON TD.id_tipodocumento = V.id_tipodocumento
             INNER JOIN comercial.cliente C ON C.codigo_cliente = V.codigo_cliente
@@ -136,6 +137,7 @@ def leer_db_access():
         venta.punto_venta = row[12]
         venta.descuentos = float(row[13])
         venta.igv = float(row[14])
+        venta.codigo_condicion_de_pago = row[15]
         venta.total_bolsa_plastica = 0        
         venta.total_descuentos = 0
         venta.total_gratuito = 0
@@ -191,7 +193,18 @@ def _generate_lista(ventas):
         datos_del_cliente['telefono'] = ''
 
         header_dic['datos_del_cliente_o_receptor'] = datos_del_cliente
-        
+        # Creditos
+        # header_dic['codigo_condicion_de_pago'] = '01' 
+        # if venta.codigo_condicion_de_pago == 2:
+        #     header_dic['codigo_condicion_de_pago'] = '02'
+        #     cuotas = []
+        #     num_cuotas = {}
+        #     num_cuotas['fecha'] = venta.codigo_tipo_documento_identidad
+        #     num_cuotas['codigo_tipo_moneda'] = venta.documento_cliente
+        #     num_cuotas['monto'] = venta.nombre_cliente
+        #     cuotas.append(num_cuotas)
+        #     header_dic['cuotas'] = cuotas
+
         # descuentos Total
         if venta.descuentos != 0:
             descT = []
@@ -213,7 +226,7 @@ def _generate_lista(ventas):
         datos_totales['total_exportacion'] = 0.00
         datos_totales['total_operaciones_gravadas'] = 0.00 if venta.igv == 0 else venta.total_venta 
         datos_totales['total_operaciones_inafectas'] = 0.00
-        datos_totales['total_operaciones_exoneradas'] = venta.sumSubtotales - venta.total_bolsa_plastica if venta.igv == 0 else 0.00
+        datos_totales['total_operaciones_exoneradas'] = venta.total_venta - venta.total_bolsa_plastica if venta.igv == 0 else 0.00#venta.sumSubtotales 
         datos_totales['total_operaciones_gratuitas'] = round(venta.total_gratuito, 2)
         datos_totales['total_impuestos_bolsa_plastica'] = venta.total_bolsa_plastica
         datos_totales['total_igv'] = 0.00 if venta.igv == 0 else venta.igv
@@ -237,6 +250,7 @@ def _generate_lista(ventas):
 
             # descuentos por item
             if deta.desc_individual != 0 and deta.monto_total!= 0 :
+                item['precio_unitario'] = deta.sub_total - deta.desc_individual
                 desc = []
                 descuentos = {}
                 descuentos['codigo'] = '00'
@@ -260,7 +274,7 @@ def _generate_lista(ventas):
     return header_dics
 
 def _detalle_items_exonerada(deta, item):
-    item["valor_unitario"] = round(deta.precio_producto, 2)
+    item["valor_unitario"] = deta.precio_producto
     item['codigo_tipo_afectacion_igv'] = '20'
     item['total_base_igv'] = deta.monto_total
     item['porcentaje_igv'] = 18
@@ -286,13 +300,13 @@ def _detalle_items_gravado(deta, item):
 def _detalle_items_gratuito(deta, item):
     item["valor_unitario"] = 0
     item['codigo_tipo_precio'] = '02'
-    item['precio_unitario'] = 0
+    item['precio_unitario'] = deta.precio_producto#0
     item['codigo_tipo_afectacion_igv'] = '21' #'16'
     item['total_base_igv'] = deta.cantidad * deta.precio_producto if deta.igv == 0 else round(deta.cantidad * deta.precio_producto/1.18, 2)
     item['porcentaje_igv'] = 18
     item['total_igv'] = 0 if deta.igv == 0 else round(deta.monto_total - (deta.monto_total/1.18), 2) 
     item['total_impuestos_bolsa_plastica'] = deta.total_impuestos_bolsa_plastica
     item['total_impuestos'] = 0
-    item['total_valor_item'] = 0
+    item['total_valor_item'] = deta.sub_total#0
     item['total_item'] = 0
     return item
