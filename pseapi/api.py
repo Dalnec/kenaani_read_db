@@ -33,12 +33,12 @@ def _send_cpe(url, token, data, estado):
             if res.status_code == 200:
                 external_id=data['data']['external_id']
                 if estado == 'R': # Es rechazado?
-                    if venta['codigo_tipo_documento'] == '01' :                        
+                    if venta['codigo_tipo_documento'] == '01' : # Es Factura?                       
                         update_venta_pgsql('ANULADO PENDIENTE', external_id, int(venta['id_venta']))
                     else:
                         update_venta_pgsql('ANULADO POR RESUMIR', external_id, int(venta['id_venta']))
                 else:
-                    if venta['codigo_tipo_documento'] == '01' :                        
+                    if venta['codigo_tipo_documento'] == '01' : # Es Factura?                   
                         update_venta_pgsql('PROCESADO', external_id, int(venta['id_venta']))
                     else:
                         update_venta_pgsql('POR RESUMIR', external_id, int(venta['id_venta']))
@@ -368,7 +368,7 @@ def _send_cpe_guia(url, token, data):
         'Authorization': 'Bearer {}'.format(token)
     }
     for guia in data:
-        print(guia)
+        #print(guia)
         response = requests.post(
             url, json=guia, headers=header, verify=False)
         if response.status_code == 200:

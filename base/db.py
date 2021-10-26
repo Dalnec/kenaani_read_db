@@ -130,7 +130,7 @@ def get_resumen_por_consultar_pgsql():
     try:
         cnx = __conectarse()
         cursor = cnx.cursor()
-        cursor.execute("SELECT id_venta, observaciones_declaracion FROM comercial.ventas WHERE estado_declaracion = 'POR CONSULTAR' OR estado_declaracion = 'ANULADO POR RESUMIR' ORDER BY fecha_hora LIMIT 1")
+        cursor.execute("SELECT id_venta, observaciones_declaracion FROM comercial.ventas WHERE estado_declaracion in ('POR CONSULTAR', 'ANULADO POR CONSULTAR') ORDER BY fecha_hora LIMIT 1")
         return cursor.fetchone()
     finally:
         # closing database connection

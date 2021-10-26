@@ -1,5 +1,3 @@
-import pyodbc
-import psycopg2
 from base.db import __conectarse
 
 class Venta:

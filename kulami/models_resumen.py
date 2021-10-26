@@ -1,8 +1,4 @@
-from pseapi.api import ObjJSON
-import pyodbc
-import psycopg2
 from base.db import __conectarse, get_date_por_resumen_pgsql, get_resumen_por_consultar_pgsql
-import time
 
 def _ver_documentos(dia):
     cnx = __conectarse()
@@ -71,18 +67,8 @@ def _ver_documentos_por_consultar(json):
 
 def leer_db_consulta():
     to_consultar = get_resumen_por_consultar_pgsql()
-    if to_consultar:
+    if to_consultar and to_consultar[1] != '':
         lista_consultar = _ver_documentos_por_consultar(to_consultar[1])
         return to_consultar[1], lista_consultar
     else:
         return [], []
-
-# def _get_format(lista_consultar):
-#     print(lista_consultar[4])
-#     if lista_consultar[4] == 'POR CONSULTAR':
-#         formato = lista_consultar[6]
-#         print(formato)
-#     else:
-#         formato = lista_consultar[6]
-#         print(formato)
-#     return formato

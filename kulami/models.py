@@ -1,6 +1,5 @@
-# import pyodbc
-import psycopg2
-from base.db import __conectarse, read_empresa_pgsql
+import time
+from base.db import __conectarse
 import configparser
 
 config = configparser.ConfigParser()
@@ -194,16 +193,20 @@ def _generate_lista(ventas):
 
         header_dic['datos_del_cliente_o_receptor'] = datos_del_cliente
         # Creditos
-        # header_dic['codigo_condicion_de_pago'] = '01' 
-        # if venta.codigo_condicion_de_pago == 2:
-        #     header_dic['codigo_condicion_de_pago'] = '02'
-        #     cuotas = []
-        #     num_cuotas = {}
-        #     num_cuotas['fecha'] = venta.codigo_tipo_documento_identidad
-        #     num_cuotas['codigo_tipo_moneda'] = venta.documento_cliente
-        #     num_cuotas['monto'] = venta.nombre_cliente
-        #     cuotas.append(num_cuotas)
-        #     header_dic['cuotas'] = cuotas
+        header_dic['codigo_condicion_de_pago'] = '01' 
+        if venta.codigo_condicion_de_pago == 2:
+            header_dic['codigo_condicion_de_pago'] = '02'
+            cuotas = []
+            num_cuotas = {}
+            fecha_pago = time.strptime(venta.fecha_venta.strftime('%Y-%m-%d'), '%Y-%m-%d')
+            fecha_pago = time.mktime(fecha_pago) + 2592000 # Convierte a segundos  + un dia (86400)
+            fecha_pago = time.localtime(fecha_pago) 
+            fecha_pago = time.strftime("%Y-%m-%d", fecha_pago)
+            num_cuotas['fecha'] = fecha_pago
+            num_cuotas['codigo_tipo_moneda'] = codigo_tipo_moneda
+            num_cuotas['monto'] = venta.total_venta + venta.igv
+            cuotas.append(num_cuotas)
+            header_dic['cuotas'] = cuotas
 
         # descuentos Total
         if venta.descuentos != 0:
@@ -250,7 +253,7 @@ def _generate_lista(ventas):
 
             # descuentos por item
             if deta.desc_individual != 0 and deta.monto_total!= 0 :
-                item['precio_unitario'] = deta.sub_total - deta.desc_individual
+                item['precio_unitario'] = deta.precio_producto - (deta.desc_individual/round(deta.cantidad, 2))
                 desc = []
                 descuentos = {}
                 descuentos['codigo'] = '00'
