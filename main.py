@@ -1,3 +1,4 @@
+import asyncio
 import time
 import sys
 import configparser
@@ -28,7 +29,8 @@ if __name__ == "__main__":
     from kulami.models_guiaRemision import leer_db_guia
     from kulami.models_rechazados import leer_db_rechazados
     from kulami.models_resumen import leer_db_resumen, leer_db_consulta
-    from pseapi.api import ( create_document, create_anulados, create_notaCredito, create_resumen, create_consulta, create_guiaRemision, create_anulados_consultar )
+    from kulami.models_retry import leer_db_to_retry
+    from pseapi.api import ( get_cpe_docs, create_document, create_anulados, create_notaCredito, create_resumen, create_consulta, create_guiaRemision, create_anulados_consultar )
     from backup.postgresql_backup import backup
     from base.db import _get_time
     from logger import log
@@ -122,3 +124,15 @@ if __name__ == "__main__":
         except Exception as e:
             log.error(f'Consulta Excepcion: {e}')
             time.sleep(2)
+
+        if True: #time_now >= db_time and time_now <= db_time2 and db_state:
+            try:
+                date_retry, list_retry  = leer_db_to_retry()
+                # asyncio.run(get_cpe_docs(date_retry))
+                loop = asyncio.get_event_loop()
+                loop.run_until_complete(get_cpe_docs(date_retry, list_retry))
+                loop.run_until_complete(asyncio.sleep(0))
+                # loop.close()
+            except Exception as e:
+                log.error(f'Retry: {e}') 
+                time.sleep(1)

@@ -36,7 +36,7 @@ pip install nombre_de_paquete
 	1. ANULADO	 				-		PENDIENTE
 	2. ANULADO PENDIENTE 		- 		PENDIENTE
 	3. ANULACION A CONSULTAR 	- 		PENDIENTE
-	4. ANULADO PROCESADO		- 		PROCESADO
+	4. ANULADO					- 		PROCESADO
 ```
 
 ## ESTADOS BOLETAS 
@@ -54,9 +54,9 @@ pip install nombre_de_paquete
 	1. ANULADO 					-		PENDIENTE
 	2. ANULADO POR RESUMIR 		- 		PENDIENTE
 	3. ANULADO POR CONSULTAR	-		PENDIENTE
-	4. POR ANULAR				-		PENDIENTE
+	4. ANULADO					-		PENDIENTE				-		external_id
 	5. ANULACION A CONSULTAR	-		PENDIENTE
-	6. ANULADO	PROCESADO		-		PROCESADO
+	6. ANULADO					-		PROCESADO
 ```
 
 ## ESTADOS CPE BOLETAS
@@ -73,3 +73,49 @@ pip install nombre_de_paquete
 	1.		01			-			Por Anular
 	2. 		03 			- 			Anulado
 ```
+
+## ACCIONES DE POSIBLES ERRORES
+```
+	* Si 'ya se encuentra registrado':
+	
+	estado_declaracion			observaciones_declaracion		external_id
+	PROCESADO			-			""					-		"-"
+	
+	* Si 'No se encontraron documentos'
+	Durante resumenes:
+		estado_declaracion			observaciones_declaracion
+		ANULADO R			-			"-"
+		PROCESADO R			-			"-"
+	
+	Durante consultas:
+		estado_declaracion			observaciones_declaracion
+		ANULADO C			-			"-"
+		PROCESADO C			-			"-"
+```
+
+update comercial.ventas
+set estado_declaracion='PENDIENTE', observaciones_declaracion='', external_id=''
+where id_venta in (55876
+,55871
+,55870
+,55867
+,55865)
+
+update comercial.ventas
+set observaciones_declaracion=''
+where id_venta in (55876
+,55871
+,55870
+,55867)
+
+SELECT V.id_venta,
+	V.fecha_hora,
+	V.num_serie,
+	V.num_documento,
+	V.estado_declaracion,
+	V.estado_declaracion_anulado,
+	V.observaciones_declaracion
+FROM comercial.ventas AS V
+WHERE observaciones_declaracion != ''
+
+UPDATE comercial.ventas SET estado_declaracion = %s WHERE id_venta = %s

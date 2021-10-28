@@ -114,6 +114,22 @@ def get_date_por_resumen_pgsql():
             cursor.close()
             cnx.close()
 
+def get_retry_date_pgsql():
+    try:
+        datenow = time.localtime()
+        datenow = time.strftime("%Y-%m-%d", datenow)
+        cnx = __conectarse()
+        cursor = cnx.cursor()
+        consulta = """ SELECT fecha_hora, estado_declaracion, external_id FROM comercial.ventas WHERE estado_declaracion in ('PROCESADO V', 'PROCESADO R', 'PROCESADO C') AND fecha_hora < '{}' ORDER BY fecha_hora LIMIT 1 """
+        cursor.execute(consulta.format(datenow))
+        date_resumen = cursor.fetchone()
+        return date_resumen
+    finally:
+        # closing database connection
+        if (cnx):
+            cursor.close()
+            cnx.close()
+
 def update_resumen_pgsql(estado, ext_id, id):
     try:
         cnx = __conectarse()
@@ -143,6 +159,18 @@ def update_consultar_pgsql(estado, ext_id, id):
         cnx = __conectarse()
         cursor = cnx.cursor()
         cursor.execute( "UPDATE comercial.ventas SET estado_declaracion = %s, observaciones_declaracion = %s WHERE id_venta = %s", (estado, ext_id, id))
+        cnx.commit()
+    finally:
+        # closing database connection
+        if (cnx):
+            cursor.close()
+            cnx.close()
+
+def update_no_200(estado, id):
+    try:
+        cnx = __conectarse()
+        cursor = cnx.cursor()
+        cursor.execute( "UPDATE comercial.ventas SET estado_declaracion = %s WHERE id_venta = %s", (estado, id))
         cnx.commit()
     finally:
         # closing database connection

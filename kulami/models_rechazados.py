@@ -90,6 +90,7 @@ def leer_db_rechazados():
         WHERE V.estado_declaracion='ANULADO'
 		AND V.estado_declaracion_anulado='PENDIENTE'
             AND observaciones_declaracion = ''
+            AND external_id = ''
             AND V.num_serie not in ('PRE') 
             AND TD.id_tipodocumento in (25,26)
             AND V.fecha_hora >= '{}'

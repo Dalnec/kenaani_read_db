@@ -35,7 +35,7 @@ def leer_db_fanulados():
                 ventas.id_tipodocumento = tipodocumento.id_tipodocumento AND
                 ventas.estado_declaracion_anulado = 'PENDIENTE' AND
                 ventas.codigo_cliente = 'ANULADO' AND
-                ventas.estado_declaracion = 'ANULADO PENDIENTE' AND
+                ventas.estado_declaracion = 'ANULADO' AND
                 tipodocumento.codigo_sunat = '01' AND
                 ventas.external_id != ''                
             ORDER BY ventas.fecha_hora
@@ -82,9 +82,9 @@ def leer_db_banulados():
                 ventas.id_tipodocumento = tipodocumento.id_tipodocumento AND
                 ventas.codigo_cliente = 'ANULADO' AND
                 ventas.estado_declaracion_anulado = 'PENDIENTE' AND
-                ventas.estado_declaracion = 'POR ANULAR' AND
+                ventas.estado_declaracion = 'ANULADO' AND
                 tipodocumento.codigo_sunat = '03' AND
-                ventas.observaciones_declaracion != ''
+                ventas.external_id != ''
             ORDER BY ventas.fecha_hora
         """   
     cursor.execute(sql_header)

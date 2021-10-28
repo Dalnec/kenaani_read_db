@@ -1,7 +1,8 @@
+import aiohttp
 import requests
 import json
 
-from base.db import (read_empresa_pgsql, update_consultar_pgsql, update_venta_pgsql, update_anulados_pgsql, update_notaCredito_pgsql, update_guia_pgsql, update_rechazados_pgsql, update_resumen_pgsql)
+from base.db import (read_empresa_pgsql, update_consultar_pgsql, update_no_200, update_venta_pgsql, update_anulados_pgsql, update_notaCredito_pgsql, update_guia_pgsql, update_rechazados_pgsql, update_resumen_pgsql)
 from logger import log
 from urllib3.exceptions import InsecureRequestWarning
 
@@ -32,16 +33,13 @@ def _send_cpe(url, token, data, estado):
             # Adaptamos la respuesta para guardarlo
             if res.status_code == 200:
                 external_id=data['data']['external_id']
-                if estado == 'R': # Es rechazado?
-                    if venta['codigo_tipo_documento'] == '01' : # Es Factura?                       
-                        update_venta_pgsql('ANULADO PENDIENTE', external_id, int(venta['id_venta']))
+                if venta['codigo_tipo_documento'] == '01' : # Es Factura?        
+                    if estado == 'R': # Es rechazado?           
+                        update_venta_pgsql('ANULADO', external_id, int(venta['id_venta']))
                     else:
-                        update_venta_pgsql('ANULADO POR RESUMIR', external_id, int(venta['id_venta']))
-                else:
-                    if venta['codigo_tipo_documento'] == '01' : # Es Factura?                   
                         update_venta_pgsql('PROCESADO', external_id, int(venta['id_venta']))
-                    else:
-                        update_venta_pgsql('POR RESUMIR', external_id, int(venta['id_venta']))
+                else:
+                    update_venta_pgsql('POR RESUMIR', external_id, int(venta['id_venta']))
                 
                 rest = RespuestaREST(
                     data['success'],"filename:{};estado:{}".format(data['data']['filename'],
@@ -51,7 +49,7 @@ def _send_cpe(url, token, data, estado):
                 rest = RespuestaREST(False, data['message'], data)
                 log.error(f'{rest.message}')
                 if (rest.message.find('ya se encuentra registrado') != -1):
-                    update_venta_pgsql('PROCESADO', '-', int(venta['id_venta']))
+                    update_venta_pgsql('PROCESADO V', '-', int(venta['id_venta']))
                     
         except requests.ConnectionError as e:
             log.warning(e)
@@ -148,7 +146,7 @@ def _send_cpe_anulados_consultar(urlf, urlb, token, data):
             # Adaptamos la respuesta para guardarlo
             if res.status_code == 200:
                 external_id="{}".format(data['data']['external_id'])
-                update_anulados_pgsql('ANULADO PROCESADO', 'PROCESADO', external_id, int(venta['id_venta']))
+                update_anulados_pgsql('ANULADO', 'PROCESADO', external_id, int(venta['id_venta']))
                 rest = RespuestaREST(
                     data['success'],"Consulta Anulacion estado:{} {}".format(data['response']['description'], venta['documento']), data)
                 log.info(f'{rest.message}')
@@ -239,10 +237,7 @@ def _send_cpe_resumen(url, token, formato, lista_resumen):
             if res.status_code == 200:
                 external_id = ObjJSON(data['data']).encoder()
                 for venta in lista_resumen:
-                    if venta[5] == 'ANULADO POR RESUMIR':
-                        update_resumen_pgsql('ANULADO POR CONSULTAR', external_id, int(venta[0]))
-                    else:
-                        update_resumen_pgsql('POR CONSULTAR', external_id, int(venta[0]))
+                    update_resumen_pgsql('POR CONSULTAR', external_id, int(venta[0]))
                 rest = RespuestaREST(data['success'], "Resumen Enviado ticket:{} {}".format(data['data']['ticket'], formato['fecha_de_emision_de_documentos']), data)
                 log.info(f'{rest.message}')
             else:
@@ -250,10 +245,11 @@ def _send_cpe_resumen(url, token, formato, lista_resumen):
                 log.error(f'{rest.message}')
                 if (rest.message.find('No se encontraron documentos') != -1):
                     for venta in lista_resumen:
-                        if venta[5] == 'ANULADO POR RESUMIR':
-                            update_resumen_pgsql('ANULADO R', '-', int(venta[0]))
-                        else:
-                            update_resumen_pgsql('PROCESADO R', '-', int(venta[0]))
+                        update_no_200('PROCESADO R', int(venta[0]))
+                        # if venta[5] == 'ANULADO POR RESUMIR':
+                        #     update_no_200('ANULADO R', int(venta[0]))
+                        # else:
+                        #     update_no_200('PROCESADO R', int(venta[0]))
             
     except requests.ConnectionError as e:
         log.warning(e)
@@ -318,10 +314,9 @@ def _send_cpe_consulta(url, token, formato, lista_consultar):
 
             if res.status_code == 200:
                 external_id = ObjJSON(data['data']).encoder()
-                # external_id = data['data']
                 for venta in lista_consultar:
-                    if venta[4] == 'ANULADO POR CONSULTAR':
-                        update_consultar_pgsql('POR ANULAR', external_id, int(venta[0]))
+                    if venta[5] == 'PENDIENTE':
+                        update_consultar_pgsql('ANULADO', external_id, int(venta[0]))
                     else:
                         update_consultar_pgsql('PROCESADO', external_id, int(venta[0]))
 
@@ -333,10 +328,11 @@ def _send_cpe_consulta(url, token, formato, lista_consultar):
                 log.error(f'{rest.message}')
                 if (rest.message.find('El ticket no existe') != -1) or (rest.message.find('Description: Internal Error (from server)') != -1):
                     for venta in lista_consultar:
-                        if venta[4] == 'ANULADO POR RESUMIR':
-                            update_consultar_pgsql('ANULADO C', '-', int(venta[0]))
-                        else:
-                            update_consultar_pgsql('PROCESADO C', '-', int(venta[0]))
+                        update_no_200('PROCESADO C', int(venta[0]))
+                        # if venta[4] == 'ANULADO POR RESUMIR':
+                        #     update_no_200('ANULADO C', int(venta[0]))
+                        # else:
+                        #     update_no_200('PROCESADO C', int(venta[0]))
     
     except requests.ConnectionError as e:
         log.warning(e)
@@ -379,3 +375,35 @@ def _send_cpe_guia(url, token, data):
         else:
             print(response.content)
             print(response.status_code)
+
+# def get_filter_doc(serie):
+#     print("************ ", number['id'])
+#     print("************ ", number['number'])
+#     return str(number['number']) == serie
+
+def get_map_doc(item):
+    print("++++++++++++ ", item['number'])
+    data_dict = {'serie':  item['number'], 'state_type_id': item['state_type_id'], 'state_type_description': item['state_type_description']}
+    return data_dict
+    
+
+async def get_cpe_docs(date, lista):
+
+    async with aiohttp.ClientSession() as session:
+        convenio = read_empresa_pgsql()
+        url = f"{convenio[1]}/api/documents/lists/{date}/{date}"
+        token = convenio[0]
+        header = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer {}'.format(token)
+        }
+        print(url)
+        async with session.get(url, headers=header) as res:
+            json_body = await res.json()
+            iter_list = []
+            for data in lista:
+                serie = "{}-{}".format(data[2], int(data[3]))
+                print(serie)
+                filtrado = list(filter(lambda number: number['number'] == serie, json_body['data']))
+                # iter = map(get_map_doc, filter(lambda number: number['number'] == serie, json_body['data']))
+                print("-------- ", filtrado[0])
