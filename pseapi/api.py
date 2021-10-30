@@ -2,7 +2,7 @@ import aiohttp
 import requests
 import json
 
-from base.db import (read_empresa_pgsql, update_consultar_pgsql, update_no_200, update_venta_pgsql, update_anulados_pgsql, update_notaCredito_pgsql, update_guia_pgsql, update_rechazados_pgsql, update_resumen_pgsql)
+from base.db import (read_empresa_pgsql, update_consultar_pgsql, update_no_200, update_retry_anulates, update_venta_pgsql, update_anulados_pgsql, update_notaCredito_pgsql, update_guia_pgsql, update_rechazados_pgsql, update_resumen_pgsql)
 from logger import log
 from urllib3.exceptions import InsecureRequestWarning
 
@@ -49,7 +49,7 @@ def _send_cpe(url, token, data, estado):
                 rest = RespuestaREST(False, data['message'], data)
                 log.error(f'{rest.message}')
                 if (rest.message.find('ya se encuentra registrado') != -1):
-                    update_venta_pgsql('PROCESADO V', '-', int(venta['id_venta']))
+                    update_venta_pgsql('PROCESADO V', '', int(venta['id_venta']))
                     
         except requests.ConnectionError as e:
             log.warning(e)
@@ -376,17 +376,6 @@ def _send_cpe_guia(url, token, data):
             print(response.content)
             print(response.status_code)
 
-# def get_filter_doc(serie):
-#     print("************ ", number['id'])
-#     print("************ ", number['number'])
-#     return str(number['number']) == serie
-
-def get_map_doc(item):
-    print("++++++++++++ ", item['number'])
-    data_dict = {'serie':  item['number'], 'state_type_id': item['state_type_id'], 'state_type_description': item['state_type_description']}
-    return data_dict
-    
-
 async def get_cpe_docs(date, lista):
 
     async with aiohttp.ClientSession() as session:
@@ -397,13 +386,19 @@ async def get_cpe_docs(date, lista):
             'Content-Type': 'application/json',
             'Authorization': 'Bearer {}'.format(token)
         }
-        print(url)
-        async with session.get(url, headers=header) as res:
-            json_body = await res.json()
-            iter_list = []
-            for data in lista:
-                serie = "{}-{}".format(data[2], int(data[3]))
-                print(serie)
-                filtrado = list(filter(lambda number: number['number'] == serie, json_body['data']))
-                # iter = map(get_map_doc, filter(lambda number: number['number'] == serie, json_body['data']))
-                print("-------- ", filtrado[0])
+        if lista:
+            async with session.get(url, headers=header) as res:
+                json_body = await res.json()
+                for data in lista:
+                    serie = "{}-{}".format(data[2], int(data[3]))
+                    filtrado = list(filter(lambda number: number['number'] == serie, json_body['data']))
+                    if len(filtrado) > 0 :
+                        item = filtrado[0]
+                        if item['state_type_id'] == '11': # anulado?
+                            print("Updating States 11", serie)
+                            update_retry_anulates('ANULADO', 'PROCESADO', item['external_id'], int(data[0]))
+                        elif item['state_type_id'] == '05': # aceptado?
+                            print("Updating States 05", serie)
+                            update_retry_anulates('ANULADO', 'PENDIENTE', item['external_id'], int(data[0]))
+                    else:
+                        update_retry_anulates('ANULADO', 'PENDIENTE', "", int(data[0]))
