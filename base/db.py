@@ -120,7 +120,7 @@ def get_retry_date_pgsql():
         datenow = time.strftime("%Y-%m-%d", datenow)
         cnx = __conectarse()
         cursor = cnx.cursor()
-        consulta = """ SELECT fecha_hora, estado_declaracion, external_id FROM comercial.ventas WHERE fecha_hora > '2021-10-01' AND fecha_hora < '{}' AND estado_declaracion_anulado = 'PENDIENTE' ORDER BY fecha_hora LIMIT 1 """
+        consulta = """ SELECT fecha_hora, estado_declaracion, external_id FROM comercial.ventas WHERE fecha_hora > '2021-10-01' AND estado_declaracion_anulado = 'PENDIENTE' ORDER BY fecha_hora LIMIT 1 """
         # consulta = """ SELECT fecha_hora, estado_declaracion, external_id FROM comercial.ventas WHERE estado_declaracion in ('PROCESADO V', 'PROCESADO R', 'PROCESADO C') AND fecha_hora < '{}' AND estado_declaracion_anulado = 'PENDIENTE' ORDER BY fecha_hora LIMIT 1 """
         cursor.execute(consulta.format(datenow))
         date_resumen = cursor.fetchone()

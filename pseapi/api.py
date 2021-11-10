@@ -395,10 +395,10 @@ async def get_cpe_docs(date, lista):
                     if len(filtrado) > 0 :
                         item = filtrado[0]
                         if item['state_type_id'] == '11': # anulado?
-                            print("Updating States 11", serie)
+                            log.info(f'Updating States 11, {serie}')
                             update_retry_anulates('ANULADO', 'PROCESADO', item['external_id'], int(data[0]))
                         elif item['state_type_id'] == '05': # aceptado?
-                            print("Updating States 05", serie)
+                            log.info(f'Updating States 05, {serie}')
                             update_retry_anulates('ANULADO', 'PENDIENTE', item['external_id'], int(data[0]))
                     else:
                         update_retry_anulates('ANULADO', 'PENDIENTE', "", int(data[0]))

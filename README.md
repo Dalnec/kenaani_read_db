@@ -92,30 +92,3 @@ pip install nombre_de_paquete
 		ANULADO C			-			"-"
 		PROCESADO C			-			"-"
 ```
-
-update comercial.ventas
-set estado_declaracion='PENDIENTE', observaciones_declaracion='', external_id=''
-where id_venta in (55876
-,55871
-,55870
-,55867
-,55865)
-
-update comercial.ventas
-set observaciones_declaracion=''
-where id_venta in (55876
-,55871
-,55870
-,55867)
-
-SELECT V.id_venta,
-	V.fecha_hora,
-	V.num_serie,
-	V.num_documento,
-	V.estado_declaracion,
-	V.estado_declaracion_anulado,
-	V.observaciones_declaracion
-FROM comercial.ventas AS V
-WHERE observaciones_declaracion != ''
-
-UPDATE comercial.ventas SET estado_declaracion = %s WHERE id_venta = %s
