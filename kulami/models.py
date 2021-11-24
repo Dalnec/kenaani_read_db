@@ -98,7 +98,7 @@ def leer_db_access():
         """
     #(1,2) (25,26)
     sql_detail = """
-        SELECT distinct 
+        SELECT
             P.codigo_producto codigo,--0
             DV.descripcion,		--1
             DV.cantidad,		--2
@@ -114,7 +114,6 @@ def leer_db_access():
         FROM
             comercial.detalle_venta DV
             INNER JOIN comercial.producto P ON P.codigo_producto = DV.codigo_producto
-            INNER JOIN comercial.detalle_producto DP ON P.codigo_producto = DP.codigo_producto
             INNER JOIN comercial.ventas V ON V.id_venta = DV.id_venta
         WHERE
             V.id_venta = {}
