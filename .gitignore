@@ -17,3 +17,5 @@ requirements1.txt
 debug.log
 prueba.json
 logs.log
+format.json
+format1.json

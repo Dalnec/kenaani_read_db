@@ -1,4 +1,5 @@
 import aiohttp
+from aiohttp import TCPConnector
 import requests
 import json
 
@@ -24,10 +25,13 @@ def _send_cpe(url, token, data, estado):
     }
     for venta in data:
         # print(venta)
+        # f = open("format.json", "a")
+        # f.write(json.dumps(venta))
+        # f.close()
         # Manejamos las excepciones
         try:
             # Realizamos la llamada al API de envío de documentos
-            res = requests.post(url, json=venta, headers=header)
+            res = requests.post(url, json=venta, headers=header, verify=False)
             # Obtenemos la respuesta y lo decodificamos
             data = ObjJSON(res.content.decode("UTF8")).decoder()
             # Adaptamos la respuesta para guardarlo
@@ -88,7 +92,7 @@ def _send_cpe_anulados(url, token, data):
         # print(venta)
         try:
             # Realizamos la llamada al API de envío de documentos
-            res = requests.post(url, json=venta, headers=header)
+            res = requests.post(url, json=venta, headers=header, verify=False)
             # Obtenemos la respuesta y lo decodificamos
             data = ObjJSON(res.content.decode("UTF8")).decoder()
             # Adaptamos la respuesta para guardarlo
@@ -138,9 +142,9 @@ def _send_cpe_anulados_consultar(urlf, urlb, token, data):
         try:
             datos = venta['data'].replace("\'", "\"")
             if venta['codigo_sunat'] == '01':       
-                res = requests.post(urlf, json=ObjJSON(datos).decoder(), headers=header)
+                res = requests.post(urlf, json=ObjJSON(datos).decoder(), headers=header, verify=False)
             else:
-                res = requests.post(urlb, json=ObjJSON(datos).decoder(), headers=header)
+                res = requests.post(urlb, json=ObjJSON(datos).decoder(), headers=header, verify=False)
             # Obtenemos la respuesta y lo decodificamos
             data = ObjJSON(res.content.decode("UTF8")).decoder()
             # Adaptamos la respuesta para guardarlo
@@ -185,7 +189,7 @@ def _send_cpe_notaCredito(url, token, data):
     for venta in data:        
         try:
             # Realizamos la llamada al API de envío de documentos
-            res = requests.post(url, json=venta, headers=header)
+            res = requests.post(url, json=venta, headers=header, verify=False)
             # Obtenemos la respuesta y lo decodificamos
             data = ObjJSON(res.content.decode("UTF8")).decoder()
             # Adaptamos la respuesta para guardarlo
@@ -231,7 +235,7 @@ def _send_cpe_resumen(url, token, formato, lista_resumen):
 
     try:
         if lista_resumen:
-            res = requests.post(url, json=formato, headers=header)
+            res = requests.post(url, json=formato, headers=header, verify=False)
             data = ObjJSON(res.content.decode("UTF8")).decoder()
             
             if res.status_code == 200:
@@ -309,7 +313,7 @@ def _send_cpe_consulta(url, token, formato, lista_consultar):
     try:
         if lista_consultar:
             formato = ObjJSON(formato).decoder()
-            res = requests.post(url, json=formato, headers=header)
+            res = requests.post(url, json=formato, headers=header, verify=False)
             data = ObjJSON(res.content.decode("UTF8")).decoder()
 
             if res.status_code == 200:
@@ -378,7 +382,7 @@ def _send_cpe_guia(url, token, data):
 
 async def get_cpe_docs(date, lista):
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(connector=TCPConnector(ssl=False)) as session:
         convenio = read_empresa_pgsql()
         url = f"{convenio[1]}/api/documents/lists/{date}/{date}"
         token = convenio[0]
