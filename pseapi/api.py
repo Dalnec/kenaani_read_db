@@ -25,13 +25,14 @@ def _send_cpe(url, token, data, estado):
     }
     for venta in data:
         # print(venta)
-        # f = open("format.json", "a")
+        # f = open(f"format_{venta['id_venta']}.json", "a")
         # f.write(json.dumps(venta))
         # f.close()
         # Manejamos las excepciones
         try:
             # Realizamos la llamada al API de envío de documentos
             res = requests.post(url, json=venta, headers=header, verify=False)
+            # print(res)
             # Obtenemos la respuesta y lo decodificamos
             data = ObjJSON(res.content.decode("UTF8")).decoder()
             # Adaptamos la respuesta para guardarlo

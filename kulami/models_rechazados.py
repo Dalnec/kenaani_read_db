@@ -87,7 +87,7 @@ def leer_db_rechazados():
             INNER JOIN comercial.detalle_venta DV ON V.id_venta = DV.id_venta
             INNER JOIN comercial.producto P ON P.codigo_producto = DV.codigo_producto
             INNER JOIN comercial.detalle_producto DP ON P.codigo_producto = DP.codigo_producto
-            INNER JOIN comercial.unidadmedida U ON  U.codigo_unidad_m = DV.cod_unidad_medida 
+            --INNER JOIN comercial.unidadmedida U ON  U.codigo_unidad_m = DV.cod_unidad_medida 
             INNER JOIN comercial.metodo_pago MP ON  MP.id_metodo_pago = V.id_metodo_pago
         WHERE V.estado_declaracion='ANULADO'
 		AND V.estado_declaracion_anulado='PENDIENTE'
